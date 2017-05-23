@@ -1,68 +1,47 @@
-listen_ip = "127.0.0.1"
-listen_port = 8080
+# coding=utf8
 
+import json
+import urllib2
 import cherrypy
 import db
-import stuff
-import datetime
-import base64
-import bcrypt
+import protocol_login_server
+import time
+import hashlib
 from cherrypy.lib.static import serve_fileobj
 
-def create_dummy_users():
-    peerList = []
-    peerList.append(stuff.peerList('userA', 'Pierre Pierre', '192.168.1.122'))
-    peerList.append(stuff.peerList('userB', 'Paul Paul', '192.168.1.121'))
-    peerList.append(stuff.peerList('userC', 'Jacques Jacques', '192.168.1.123'))
-    peerList.append(stuff.peerList('userD', 'Tartampion Tartampion', '192.168.1.120'))
-    peerList.append(stuff.peerList('userE', 'Machin Machin', '192.168.1.124'))
-    peerList.append(stuff.peerList('userF', 'Trucmuche Trucmuche', '192.168.1.119'))
-    peerList.append(stuff.peerList('userG', 'Patante Patante', '192.168.1.125'))
-    return peerList
-
 def get_formated_peer_list():
-    peerList = create_dummy_users()
     sidebar = ''
-    for peer in peerList :
-        sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer.userID + "\'" + """">
+    for peer in pls.peerList :
+        sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer[1]['username'] + "\'" + """">
         <img class="media-object" data-src="holder.js/64x64" alt="64x64" style="width: 50px; height: 50px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"></a>
-        <div class="media-body"><h5 class="media-heading">""" + peer.realName + """ </h5><small>Sample Text</small></div></div>"""
-    return (str(sidebar), peerList)
+        <div class="media-body"><h5 class="media-heading">""" + peer[1]['username'] + ' </h5><small>Last Online: ' + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer[1]['lastLogin']))) + '</small></div></div>'
+    return str(sidebar)
 
-def get_formated_message_list(userID, realUsersName):
+def get_formated_message_list(userID):
     messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap">"""
-    messageList = []
-    (conn, c) = db.openDB()
-    messageList = db.readOutMessages(c, messageList, userID, myUserID)
-    (conn, c) = db.closeDB(conn, c)
+    messageList = db.readOutMessages(userID, pls.username)
     for row in messageList :
-        name = myRealName
-        if row.fromUser == myUserID :
+        name = pls.username
+        if row['sender'] == pls.username :
             pass
         else :
-            name = realUsersName
+            name = userID
         messageHistory = messageHistory + """<div class="media msg">
             <a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="64x64" style="width: 32px; height: 32px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC">
-            </a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + row.time_stamp + "<br>" + row.status + """</small>
-            <h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + row.message + """</small>"""
-        if row.attachment_name == '' :
-            messageHistory = messageHistory + """</div></div>"""
-        else:
-            messageHistory = messageHistory + """<a href=""" + '"download?userID=' + userID + '&realUsersName=' + realUsersName + '&message=' + row.message + '"' +  '>' + row.attachment_name + '</a></div></div>'
+            </a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + row['stamp'] + "<br>" + row['status'] + """</small>
+            <h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + row['message'] + '</small></div></div>'
     messageHistory = str(messageHistory)
 
     if len(messageHistory) < 74 :
         messageHistory = messageHistory + "You have no chat history with this user, start chatting below ..."
     
-    return (messageHistory, messageList)
+    return messageHistory
 
 currentChat = ''
-myRealName = ''
-myUserID = ''
-status = False
 header = ''
 footerb = ''
 footer = ''
+pls = None
 with open ("chat_header.html", "r") as myfile : 
     header = myfile.read()
 with open ("chat_footerb.html", "r") as myfile :
@@ -89,43 +68,27 @@ class MainClass(object):
     
     @cherrypy.expose
     def logout(self):
-        global myUserID
-        global status
-        myUserID = ''
-        status = False
+        global pls
+        protocol_login_server.protocol_login_server.logoff_API_call(pls)
+        del pls
         raise cherrypy.HTTPRedirect("/")
     
     @cherrypy.expose
     def login_check(self, username, password):
-        (conn, c) = db.openDB()
-        (hashed, realname) = db.lookUpUser(c, username)
-        (conn, c) = db.closeDB(conn, c)
-        if bcrypt.checkpw(base64.b64encode(password), hashed):
-            global myUserID
-            myUserID = username
-            global myRealName
-            myRealName = realname
-            global status
-            status = True
+        hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
+        global pls
+        pls = protocol_login_server.protocol_login_server(username, hashed)
+        protocol_login_server.protocol_login_server.reporter_thread(pls)
+        if pls.status:
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
-    def register_user(self, username, password, password_confirm, email, fullname, gender, reg_agree=''):
-        if reg_agree == 'on':
-            if password == password_confirm:
-                hashed = bcrypt.hashpw(base64.b64encode(password), bcrypt.gensalt())
-                (conn, c) = db.openDB()
-                result = db.registerAccount(c, username, hashed, email, fullname, gender)
-                (conn, c) = db.closeDB(conn, c)
-                if result:
-                    raise cherrypy.HTTPRedirect("login")
-        raise cherrypy.HTTPRedirect("register")
-
-    @cherrypy.expose
     def home(self):
-        if status:
-            (sidebar, peerlist) = get_formated_peer_list()
+        if pls == None:
+            raise cherrypy.HTTPRedirect("login")
+        if pls.status:
+            sidebar = get_formated_peer_list()
             sidebar = sidebar + "</div>"
             return header + sidebar + footerb
         else:
@@ -133,42 +96,44 @@ class MainClass(object):
 
     @cherrypy.expose
     def chat(self, userID):
-        if status:
+        if pls == None:
+            raise cherrypy.HTTPRedirect("login")
+        if pls == None or pls.status:
             userID = userID.replace("\'", "")
             global currentChat
             currentChat = userID
-            (sidebar, peerList) = get_formated_peer_list()
-            realUsersName = ''
-            for x in peerList :
-                if x.userID == userID :
-                    realUsersName = x.realName
-            (messageHistory, messageList) = get_formated_message_list(userID, realUsersName)
+            sidebar = get_formated_peer_list()
+            messageHistory = get_formated_message_list(userID)
             return header + sidebar + messageHistory + footer
         else:
             raise cherrypy.HTTPRedirect("login")
         
     @cherrypy.expose
     def sendMessage(self, message, attachments):
-        if status:
-            filname = ''
-            try :
-                filname = attachments.filename
-                attachments = base64.b64encode(attachments.file.read())
-            except:
-                attachments = ''
-            
-            global currentChat
-            ob = stuff.classMessage(myUserID, currentChat, str(datetime.datetime.now()), 'SENT', message, attachments, filname)
-            (conn, c) = db.openDB()
-            db.addNewMessage(c, ob)
-            (conn, c) = db.closeDB(conn, c)
+        print(cherrypy.url())
+        if pls == None:
+            raise cherrypy.HTTPRedirect("login")
+        if pls.status:
+            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'stamp': int(time.time()), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': ''}
+            for peer in pls.peerList:
+                if currentChat == peer[1]['username']:
+                    payload = json.dumps(data)
+                    req = urllib2.Request('http://' + str(peer[1]['ip']) + ':' + str(peer[1]['port']) +  '/receiveMessage', payload, {'Content-Type': 'application/json'})
+                    response = urllib2.urlopen(req).read()
+                    if '0, ' in str(response):
+                        data['status'] = 'DELIVERED'
+                    else:
+                        data['status'] = 'OUTBOX'
+            db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def download(self, userID, realUsersName, message):
-        if status:
+        if pls == None:
+            raise cherrypy.HTTPRedirect("login")
+        if pls.status:
             (messageHistory, messageList) = get_formated_message_list(userID, realUsersName)
             attachment = ''
             filname = ''
@@ -187,10 +152,34 @@ class MainClass(object):
     @cherrypy.expose
     def error_page_404(status, message, traceback, version):
         return file("404.html")
+
+    @cherrypy.expose
+    def listAPI(self):
+        return ('Available APIs: /listAPI /ping /recieveMessage' + 
+         '<br> Encoding: ' + 
+         '<br> Encryption: ' + 
+         '<br> Hashing: ')
+        
+    @cherrypy.expose
+    def ping(self):
+        return ('0')
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def receiveMessage(self):
+        data = cherrypy.request.json
+        if data['destination'] == 'pls.username':
+            data['staus'] = 'DELIVERED'
+        else:
+            data['status'] = 'SENDING'
+        db.addNewMessage(data)
+        return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
     cherrypy.config.update({'error_page.404': error_page_404})
-    cherrypy.config.update({'server.socket_host': listen_ip,
-                            'server.socket_port': listen_port,
-                            'engine.autoreload.on': True,})
+    cherrypy.config.update({'server.socket_host': '0.0.0.0',
+                            'server.socket_port': 5050,
+                            'engine.autoreload.on': True,
+                            'tools.encode.on': True,
+                            'tools.encode.encoding': 'utf-8',})
 
 cherrypy.quickstart(MainClass())
