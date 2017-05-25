@@ -4,6 +4,7 @@ import os.path
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING)")
+	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING)")
 	return c
 
 def openDB() :
@@ -26,8 +27,6 @@ def addNewMessage(data):
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND message='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], c=data['message'], d=data['stamp']))
 	stuff = c.fetchall()
 	if stuff == []:
-		pass
-	else:
 		try:
 			c.execute("INSERT INTO messages VALUES ('{a}', '{b}', '{c}', '{d}', '{e}', '{f}', '{g}', '{h}', '{i}')".format(a=data['sender'], b=data['destination'], c=data['message'], d=data['stamp'], e=data['encoding'], f=data['encryption'], g=data['hashing'], h=data['hash'], i=data['status']))
 		except:
@@ -44,3 +43,39 @@ def readOutMessages(messageUser, myUserID):
 		pass
 	closeDB(conn, c)
 	return messageList
+
+def lookUpMessage(data):
+	(conn, c) = openDB()
+	c.execute("SELECT * FROM messages WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']))
+	stuff = c.fetchall()
+	if stuff == []:
+		closeDB(conn, c)
+		return False
+	c.execute("UPDATE messages SET status='SEEN' WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']))
+	closeDB(conn, c)
+	return True
+
+def getUserData(user):
+	(conn, c) = openDB()
+	userdata = ''
+	try :
+		c.execute("SELECT * FROM usernames WHERE username='{a}'".format(a=user))
+		userdata = [dict(zip(['username', 'fullname', 'position', 'description', 'location', 'picture'], row)) for row in c.fetchall()]
+	except :
+		pass
+	closeDB(conn, c)
+	return userdata
+
+def updateUserData(username, picture, description, location, position, fullname):
+	try :
+		(conn, c) = openDB()
+		c.execute("SELECT * FROM usernames WHERE username='{a}'".format(a=username))
+		stuff = c.fetchall()
+		if stuff == []:
+			c.execute("INSERT INTO usernames VALUES ('{a}', '{b}', '{c}', '{d}', '{e}', '{f}')".format(a=username, b=fullname, c=position, d=description, e=location, f=picture))
+		c.execute("UPDATE usernames SET fullname='{b}', position='{c}', description='{d}', location='{e}', picture='{f}' WHERE username='{a}'".format(a=username, b=fullname, c=position, d=description, e=location, f=picture))
+		closeDB(conn, c)
+	except :
+		pass
+	
+print(getUserData('ssit662'))

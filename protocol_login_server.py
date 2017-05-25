@@ -3,6 +3,7 @@ import urllib
 import json
 import time
 import thread
+import socket
 from Crypto import Random
 from Crypto.Cipher import AES
 import binascii
@@ -23,8 +24,19 @@ class protocol_login_server():
         print("Login starting..")
         data = json.loads(urllib.urlopen("http://ip.jsontest.com/").read())
         ip =  data["ip"]
-        port = '5050'
-        location = '2'
+        localip = socket.gethostbyname(socket.gethostname())
+        if '130.216' in ip:
+            ip = localip
+            port = '10008'
+            if '172.23' in ip:
+                location = '1'
+            elif '172.24' in ip:
+                location = '1'
+            else:
+                location = '0'
+        else:
+            port = '5050'
+            location = '2'
         req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(location) + '&enc=1')
         response = urllib2.urlopen(req).read()
         print("Response is: " + str(response))
