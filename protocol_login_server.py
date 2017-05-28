@@ -7,7 +7,9 @@ import socket
 import db
 from Crypto import Random
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA
 import binascii
+import Ciphers
 
 centralServer = 'https://cs302.pythonanywhere.com/'
 
@@ -26,19 +28,21 @@ class protocol_login_server():
         data = json.loads(urllib.urlopen("http://ip.jsontest.com/").read())
         ip =  data["ip"]
         localip = socket.gethostbyname(socket.gethostname())
+        port = '10008'
         if '130.216' in ip:
+            self.location = '0'
             ip = localip
-            port = '10008'
-            if '172.23' in ip:
-                self.location = '1'
-            elif '172.24' in ip:
-                self.location = '1'
-            else:
-                self.location = '0'
+        elif '172.23' in localip:
+            self.location = '1'
+            ip = localip
+        elif '172.24' in localip:
+            self.location = '1'
+            ip = localip
         else:
             port = '5050'
             self.location = '2'
         req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
+        #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
         response = urllib2.urlopen(req).read()
         print("Response is: " + str(response))
         if '0, ' in str(response):
@@ -56,7 +60,7 @@ class protocol_login_server():
             self.status = True
 
     def getList_API_call(self):
-        req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=1')
+        req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
         response = urllib2.urlopen(req).read()
         self.peerList = json.loads(response).items()
         for peer in self.peerList:
@@ -89,7 +93,10 @@ class protocol_login_server():
                     data = None
                 else:
                     try:
-                        data = json.loads(urllib.urlopen('http://' + peer[1]['ip'] + ':' + peer[1]['port'] + "/getProfile?sender=" + self.username).read())                   
+                        payload = {'sender': 'ssit662'}
+                        payload = json.dumps(payload)
+                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
+                        data = json.loads(urllib2.urlopen(req).read())
                     except:
                         pass
                 db.updateUserProfileA(data)
@@ -103,3 +110,5 @@ class protocol_login_server():
         self.location = '2'
         self.bs = 16
         self.key = '150ecd12d550d05ad83f18328e536f53'
+        self.rsakey = Ciphers.RSA1024Cipher.generatekeys()
+        self.pubkey = self.rsakey.publickey().exportKey('DER')

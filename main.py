@@ -8,6 +8,8 @@ import protocol_login_server
 import time
 import hashlib
 import base64
+import markdown
+import messageProcess
 from cherrypy.lib.static import serve_fileobj
 
 def get_formated_peer_list():
@@ -30,7 +32,7 @@ def get_formated_peer_list():
         pict = peer['picture']
         if peer['picture'] == None:
             pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
-        sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer['username'] + "\'" + """"><img class="media-object" data-src="holder.js/64x64" alt="64x64" style="width: 50px; height: 50px;" src=\"""" + pict + """"></a><div class="media-body"><h5 class="media-heading">""" + name + ' </h5><small>Last Online: ' + lastLogin + '</small></div></div>'
+        sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer['username'] + "\'" + """"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 50px; height: 50px;" src=\"""" + pict + """"></a><div class="media-body"><h5 class="media-heading">""" + name + ' </h5><small>Last Online: ' + lastLogin + '</small></div></div>'
     return unicode(sidebar)
 
 def sizeb64(b64string):
@@ -39,16 +41,22 @@ def sizeb64(b64string):
 def get_formated_message_list(userID):
     messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap">"""
     messageList = db.readOutMessages(userID, pls.username)
+    contact = db.getUserProfile(userID)[0]
+    userdata = db.getUserProfile(pls.username)[0]
     for row in messageList :
-        name = pls.username
-        if row['sender'] == pls.username :
+        name = userdata['fullname']
+        pict = userdata['picture']
+        text = markdown.markdown(row['message'])
+        if row['sender'] == userdata['username'] :
             pass
         else :
-            name = userID
-        messageHistory = messageHistory + """<div class="media msg">
-            <a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="64x64" style="width: 32px; height: 32px;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC">
-            </a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp']))) + "<br>" + row['status'] + """</small>
-            <h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + row['message'] + '</small></div></div>'
+            name = contact['username']
+            if contact['fullname'] != None:
+                name = contact['fullname']
+            pict = contact['picture']
+            if contact['picture'] == None:
+                pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
+        messageHistory = messageHistory + """<div class="media msg"><a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src=\"""" + pict + """"></a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp']))) + "<br>" + row['status'] + """</small><h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + text + '</small></div></div>'
     messageHistory = unicode(messageHistory)
 
     if len(messageHistory) < 74 :
@@ -61,6 +69,13 @@ header = ''
 footerb = ''
 footer = ''
 pls = None
+
+def stop():
+    if pls != None:
+        global pls
+        protocol_login_server.protocol_login_server.logoff_API_call(pls)
+        del pls
+
 with open ("chat_header.html", "r") as myfile : 
     header = myfile.read()
 with open ("chat_footerb.html", "r") as myfile :
@@ -167,18 +182,19 @@ class MainClass(object):
         if pls == None:
             raise cherrypy.HTTPRedirect("login")
         if pls.status:
-            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'stamp': unicode(int(time.time())), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': ''}
+            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': ''}
             for peer in pls.peerList:
                 if currentChat == peer[1]['username']:
                     payload = json.dumps(data)
-                    peer[1]['ip'] = 'localhost'
+                    if currentChat == pls.username:
+                        peer[1]['ip'] = 'localhost'
                     if peer[1]['location'] == '2':
                         pass
                     elif peer[1]['location'] == pls.location:
                         pass
                     else:
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
-                    req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) +  '/receiveMessage', payload, {'Content-Type': 'application/json'})
+                    req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                     response = urllib2.urlopen(req).read()
                     if '0, ' in unicode(response):
                         data['status'] = 'DELIVERED'
@@ -205,7 +221,7 @@ class MainClass(object):
 
     @cherrypy.expose
     def listAPI(self):
-        return ('Available APIs: /listAPI /ping /recieveMessage [sender] [destination] [message] [stamp(opt)] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)] /acknowledge [sender] [stamp] [hash] [hashing] /getProfile [sender] /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]' + 
+        return ('Available APIs: /listAPI /ping /recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)] /acknowledge [sender] [stamp] [hash] [hashing] /getPublicKey [sender] /handshake [message] [encryption] /getProfile [sender] /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]' + 
          '<br> Encoding: 0, 2' + 
          '<br> Encryption: ' + 
          '<br> Hashing: ')
@@ -218,38 +234,54 @@ class MainClass(object):
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         data = cherrypy.request.json
-        if data['encoding'] == '1' or data['encoding'] == '3':
-            return (u'8: Encoding Standard Not Supported')
-        if data['encryption'] == '3':
-            return (u'9: Encryption Standard Not Supported')
-        if data['encryption'] == '2':
-            return (u'9: Encryption Standard Not Supported')
-        if data['encryption'] == '1':
-            return (u'9: Encryption Standard Not Supported')
+        data = messageProcess.unprocess(data)
+        if isinstance(data, basestring):
+            return data
         if data['destination'] == 'pls.username':
             data['status'] = 'DELIVERED'
         else:
             data['status'] = 'SENDING'
-        if len(data['stamp']) < 5:
-            data['stamp'] = unicode(int(time.time()))
         db.addNewMessage(data)
         return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
-    def acknowlegde(self):
+    def acknowledge(self):
         data = cherrypy.request.json
         if db.lookUpMessage(data):
             return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return (u'7: Hash does not match')
+        
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def getPublicKey(self):
+        sender = cherrypy.request.json
+        return {'error': u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': pls.pubkey}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def handshake(self):
+        data = cherrypy.request.json
+        if data['encryption'] == '1':
+            data['message'] = Ciphers.XORCipher.decrypt(data['message'])
+        if data['encryption'] == '2':
+            data['message'] = Ciphers.AESCipher.decrypt(data['message'])
+        if date['encryption'] == '3':
+            return {'error': u'9: Encryption Standard Not Supported', 'message': date['message']}
+        return {'error': u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
     
     @cherrypy.expose
-    def getProfile(self, sender):
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def getProfile(self):
+        sender = cherrypy.request.json
         data = db.getUserData(pls.username)
         data[0]['encoding'] = '2'
         data[0]['encryption'] = '0'
-        return json.dumps(data[0])
+        return data[0]  
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -263,6 +295,35 @@ class MainClass(object):
         payload = {'sender': data['sender'], 'destination': data['destination'], 'message': '<a href=\"downloads?filename=' + data['filename'] + '\">' + data['filename'] + '</a>', 'stamp': data['stamp'], 'encoding': '0', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered'}
         db.addNewMessage(payload)
         return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+    
+    #TODO: add retrieveMessages function
+
+    @cherrypy.expose
+    def getList(self, username, encryption=0, json=0):
+        peerList = []
+        for peer in db.getPeerList():
+            if int(peer['lastLogin'] or 0) + 300 > time.time():
+                peerList.append(peer)  
+        for peer in peerList:
+            del peer['picture']
+            del peer['description']
+            del peer['position']
+            del peer['fullname']
+            if int(encryption) == 1:
+                for thing in peer:
+                    thing = Ciphers.XORCipher.decrypt(thing)
+            if int(encryption) == 2:
+                for thing in peer:
+                    thing = Ciphers.AESCipher.decrypt(thing)
+            if int(encryption) == 3:
+                return (u'9: Encryption Standard Not Supported')
+        if json == 1:
+            return json.dumps(peerList)
+        resp = '0, '
+        for peer in peerList:
+            resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ','
+        return resp
+        
 
     cherrypy.config.update({'error_page.404': error_page_404})
     cherrypy.config.update({'server.socket_host': '0.0.0.0',
@@ -271,4 +332,5 @@ class MainClass(object):
                             'tools.encode.on': True,
                             'tools.encode.encoding': 'utf-8',})
 
+cherrypy.engine.subscribe('stop', stop)
 cherrypy.quickstart(MainClass())
