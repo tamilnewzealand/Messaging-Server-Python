@@ -7,7 +7,7 @@ import string
 
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
-	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING)")
+	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
 	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING)")
 	data = urllib.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
@@ -34,20 +34,22 @@ def addNewMessage(data):
 	(conn, c) = openDB()
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], d=data['stamp']))
 	stuff = c.fetchall()
-	data['message'] = string.replace(data['message'], "'", "''")
+	#data['message'] = string.replace(data['message'], "'", "''")
 	if stuff == []:
 		try:
-			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encoding, :encryption, :hashing, :hash, ':status')", data)
+			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encoding, :encryption, :hashing, :hash, :status, :markdown)", data)
+			closeDB(conn, c)
+			return True
 		except:
-			print('Error: Primary key already exists')
-	closeDB(conn, c)
+			closeDB(conn, c)
+			return False
 		
 def readOutMessages(messageUser, myUserID):
 	(conn, c) = openDB()
 	messageList = ''
 	try :
 		c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' OR sender='{b}' AND destination='{a}'".format(a=messageUser, b=myUserID))
-		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encoding', 'encryption', 'hashing', 'hash', 'status'], row)) for row in c.fetchall()]
+		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encoding', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)
@@ -101,6 +103,14 @@ def getUserProfile(user):
 def updateUserProfileA(data):
 	try :
 		(conn, c) = openDB()
+		if 'fullname' not in data:
+			data['fullname'] = ''
+		if 'position' not in data:
+			data['position'] = ''
+		if 'description' not in data:
+			data['description'] = ''
+		if 'picture' not in data:
+			data['picture'] = ''
 		c.execute("UPDATE userprofiles SET fullname='{b}', position='{c}', description='{d}', picture='{e}' WHERE username='{a}'".format(a=data['username'], b=data['fullname'], c=data['position'], d=data['description'], e=data['picture']))
 		closeDB(conn, c)
 	except :

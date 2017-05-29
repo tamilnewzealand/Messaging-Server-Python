@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <title>Chat</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="simplemde.min.css">
+    <script src="simplemde.min.js"></script>
+    <script>var simplemde = new SimpleMDE();</script>
     <style type="text/css">
             .conversation-wrap
     {
@@ -161,11 +164,13 @@
     }
 
     </style>
-    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <script src="jquery-1.11.1.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+    <script>var objDiv = document.getElementById("your_div");
+objDiv.scrollBottom = objDiv.scrollHeight;</script>
 </head>
 <body>
-        <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+        <link href="font-awesome.css" rel="stylesheet">
 
 <div class="container">
     <div class="row">

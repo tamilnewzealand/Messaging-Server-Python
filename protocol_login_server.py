@@ -39,7 +39,6 @@ class protocol_login_server():
             self.location = '1'
             ip = localip
         else:
-            port = '5050'
             self.location = '2'
         req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
         #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
@@ -86,19 +85,21 @@ class protocol_login_server():
         while True:
             data = None
             for peer in self.peerList:
-                if peer[1]['username'] == 'ssit662':
-                    data = """{"username": "ssit662", "picture": "https://s3.amazonaws.com/37assets/svn/1065-IMG_2529.jpg", "description": "Enquire for more information", "encoding": "2", "encryption": "0", "location": "Earth", "position": "Student", "fullname": "Sakayan Sitsabesan"}"""
-                    data = json.loads(data)
-                elif '192.168' in peer[1]['ip']:
-                    data = None
+                if currentChat == pls.username:
+                        peer[1]['ip'] = 'localhost'
+                elif peer[1]['location'] == '2':
+                    pass
+                elif peer[1]['location'] == pls.location:
+                    pass
                 else:
-                    try:
-                        payload = {'sender': 'ssit662'}
-                        payload = json.dumps(payload)
-                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
-                        data = json.loads(urllib2.urlopen(req).read())
-                    except:
-                        pass
+                    continue
+                try:
+                    payload = {'sender': 'ssit662'}
+                    payload = json.dumps(payload)
+                    req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
+                    data = json.loads(urllib2.urlopen(req).read())
+                except:
+                    pass
                 db.updateUserProfileA(data)
             time.sleep(300.0 - ((time.time() - starttime) % 300.0))
     

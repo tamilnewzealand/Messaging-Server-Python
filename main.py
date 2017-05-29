@@ -12,6 +12,7 @@ import markdown
 import messageProcess
 import mimetypes
 import string
+import os
 from cherrypy.lib.static import serve_fileobj
 
 def get_formated_peer_list():
@@ -41,7 +42,7 @@ def sizeb64(b64string):
     return (len(b64string) * 3) / 4 - b64string.count('=', -2)
 
 def get_formated_message_list(userID):
-    messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap">"""
+    messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap" id="your_div">"""
     messageList = db.readOutMessages(userID, pls.username)
     contact = db.getUserProfile(userID)[0]
     userdata = db.getUserProfile(pls.username)[0]
@@ -91,27 +92,7 @@ class MainClass(object):
     _cp_config = {'tools.encode.on': True, 
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on' : 'True',}
-
-    def injakdsjk(self):
-        raise cherrypy.HTTPRedirect("login")
-
-    @cherrypy.expose
-    def res(self, resource):
-        return file("res/" + resource)
-
-    @cherrypy.expose
-    def index(self):
-        MainClass.injakdsjk(self)
-        return file("index.html")
-    
-    @cherrypy.expose
-    def login(self):
-        return file("login.html")
-    
-    @cherrypy.expose
-    def register(self):
-        return file("register.html")
-    
+  
     @cherrypy.expose
     def logout(self):
         global pls
@@ -128,23 +109,23 @@ class MainClass(object):
         protocol_login_server.protocol_login_server.profile_thread(pls)
         if pls.status:
             raise cherrypy.HTTPRedirect("home")
-        raise cherrypy.HTTPRedirect("login")
+        raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def home(self):
         if pls == None:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
             sidebar = get_formated_peer_list()
             sidebar = sidebar + "</div>"
             return header + sidebar + footerb
         else:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def editProfile(self):
         if pls == None:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
             head = ''
             foot = ''
@@ -162,7 +143,7 @@ class MainClass(object):
                 sidebar = sidebar + "<div class='form-group'><label for='" + thing + "' class='sr-only'>" + thing + "</label><input type='text' class='form-control' id='" + thing + "' name='" + thing + "' placeholder='" + thing + "' value='" + payload[0][thing] + "'></div>"
             return head + sidebar.encode("ascii") + foot
         else:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def updateProfile(self, picture, description, location, position, fullname):
@@ -172,7 +153,7 @@ class MainClass(object):
     @cherrypy.expose
     def chat(self, userID):
         if pls == None:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
         if pls == None or pls.status:
             userID = userID.replace("\'", "")
             global currentChat
@@ -181,56 +162,59 @@ class MainClass(object):
             messageHistory = unicode(get_formated_message_list(userID))
             return header + sidebar + messageHistory + footer
         else:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
         
     @cherrypy.expose
     def sendMessage(self, message, attachments):
         print(cherrypy.url())
         if pls == None:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
-            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': ''}
+            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': '', 'markdown': '0'}
             for peer in pls.peerList:
                 if currentChat == peer[1]['username']:
                     payload = json.dumps(data)
                     if currentChat == pls.username:
                         peer[1]['ip'] = 'localhost'
-                    if peer[1]['location'] == '2':
+                    elif peer[1]['location'] == '2':
                         pass
                     elif peer[1]['location'] == pls.location:
                         pass
                     else:
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
-                    req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
-                    response = urllib2.urlopen(req).read()
-                    response = '0, '
-                    if '0, ' in unicode(response):
-                        data['status'] = 'DELIVERED'
-                    else:
-                        data['status'] = 'OUTBOX'
+                    if data['message'] != "":
+                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
+                        response = urllib2.urlopen(req).read()
+                        response = '0, '
+                        if '0, ' in unicode(response):
+                            data['status'] = 'DELIVERED'
+                        else:
+                            data['status'] = 'OUTBOX'
                     try :
                         filname = attachments.filename
-                        content_type = mimetypes.guess_type(filname)
+                        content_type = mimetypes.guess_type(filname)[0]
                         attachments = base64.b64encode(attachments.file.read())
-                        payload = {'sender': pls.username, 'destination': currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        stuff = {'sender': pls.username, 'destination': currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        payload = json.dumps(stuff)
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
+                        file = open ('static/downloads/' + filname.encode("ascii"), "wb")
+                        file.write(base64.b64decode(attachments))
+                        file.close()
+                        text = '<a href=\"downloads\\' + filname + '\" download>' + filname + '</a>'
+                        if 'image/' in content_type:
+                            text = '<img src=\"downloads\\' + filname + '\" alt=\"' + filname + '\" width="320">'
+                        if 'audio/' in content_type:
+                            text = '<audio controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></audio>'
+                        if 'video/' in content_type:
+                            text = '<video width="320" height="240" controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></video>'
+                        data['message'] = data['message'] + text
                     except:
                         pass
             db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
         else:
-            raise cherrypy.HTTPRedirect("login")
-
-    @cherrypy.expose
-    def downloads(self, filename):
-        if pls == None:
-            raise cherrypy.HTTPRedirect("login")
-        if pls.status:
-            RETURN_FILE = open('downloads/' + filename, 'rb')
-            return serve_fileobj(RETURN_FILE, "application/x-download", "attachment", filename)
-        else:
-            raise cherrypy.HTTPRedirect("login")
+            raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def error_page_404(status, message, traceback, version):
@@ -258,8 +242,10 @@ class MainClass(object):
             data['status'] = 'DELIVERED'
         else:
             data['status'] = 'SENDING'
-        db.addNewMessage(data)
-        return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+        if db.addNewMessage(data):
+            return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+        else:
+            return ('1: Missing Compulsory Field')
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -306,10 +292,18 @@ class MainClass(object):
         data = cherrypy.request.json
         if sizeb64(data['file']) > 5242880:
             return (u'6, உங்கள் கோப்பு எல்லைக்குள் இல்லை')
-        file = open ('downloads/' + data['filename'].encode("ascii"), "wb")
+        file = open ('static/downloads/' + data['filename'].encode("ascii"), "wb")
         file.write(base64.b64decode(data['file']))
         file.close()
-        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': '<a href=\"downloads?filename=' + data['filename'] + '\">' + data['filename'] + '</a>', 'stamp': data['stamp'], 'encoding': '0', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered'}
+        content_type = mimetypes.guess_type(data['filename'])[0]
+        text = '<a href=\"downloads\\' + data['filename'] + '\" download>' + data['filename'] + '</a>'
+        if 'image/' in content_type:
+            text = '<img src=\"downloads\\' + data['filename'] + '\" alt=\"' + data['filename'] + '\" width="320">'
+        if 'audio/' in content_type:
+            text = '<audio controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></audio>'
+        if 'video/' in content_type:
+            text = '<video width="320" height="240" controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></video>'
+        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': '0', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered', 'markdown': '0'}
         db.addNewMessage(payload)
         return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
@@ -341,13 +335,17 @@ class MainClass(object):
             resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ','
         return resp
         
+    WEB_ROOT = os.getcwd() + '\\static'
 
     cherrypy.config.update({'error_page.404': error_page_404})
     cherrypy.config.update({'server.socket_host': '0.0.0.0',
                             'server.socket_port': 10008,
                             'engine.autoreload.on': True,
                             'tools.encode.on': True,
-                            'tools.encode.encoding': 'utf-8',})
+                            'tools.encode.encoding': 'utf-8',
+                            'tools.staticdir.on' : True,
+                            'tools.staticdir.dir' : WEB_ROOT,
+                            'tools.staticdir.index' : 'index.html'})
 
 cherrypy.engine.subscribe('stop', stop)
 cherrypy.quickstart(MainClass())
