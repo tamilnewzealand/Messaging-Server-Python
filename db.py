@@ -8,7 +8,7 @@ import string
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
-	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING)")
+	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING)")
 	data = urllib.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
 	data = data.replace(",", "'), ('")
@@ -88,6 +88,32 @@ def updateUserData(username, picture, description, location, position, fullname)
 		closeDB(conn, c)
 	except :
 		pass
+
+def updateUserHash(username, hashed):
+	try :
+		(conn, c) = openDB()
+		c.execute("SELECT * FROM usernames WHERE username='{a}'".format(a=username))
+		stuff = c.fetchall()
+		if stuff == []:
+			c.execute("INSERT INTO usernames (username, hash) VALUES ('{a}', '{b}')".format(a=username, b=hashed))
+		else:
+			c.execute("UPDATE usernames SET hash='{b}' WHERE username='{a}'".format(a=username, b=hashed))
+		closeDB(conn, c)
+	except :
+		pass
+
+def checkUserHash(username, hashed):
+	try :
+		(conn, c) = openDB()
+		c.execute("SELECT * FROM usernames WHERE username='{a}' AND hash='{b}'".format(a=username, b=hashed))
+		stuff = c.fetchall()
+		closeDB(conn, c)
+		if stuff == []:
+			return False
+		else:
+			return True
+	except :
+		return False
 
 def getUserProfile(user):
 	(conn, c) = openDB()

@@ -40,12 +40,19 @@ class protocol_login_server():
             ip = localip
         else:
             self.location = '2'
-        req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
-        #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
-        response = urllib2.urlopen(req).read()
+        try:
+            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
+            #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
+            response = urllib2.urlopen(req).read()
+        except:
+            if db.checkUserHash(self.username, self.hashed):
+                response = u'0, Server offline but user verified'
+            else:
+                response = u'2, Unauthenticated User'
         print("Response is: " + str(response))
         if '0, ' in str(response):
             self.status = True
+            db.updateUserHash(self.username, self.hashed)
         else:
             self.status = False
 
