@@ -1,6 +1,9 @@
+# coding=utf8
+
 import sqlite3
 import os.path
 import urllib
+import string
 
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
@@ -29,11 +32,12 @@ def closeDB(conn, c):
 
 def addNewMessage(data):
 	(conn, c) = openDB()
-	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND message='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], c=data['message'], d=data['stamp']))
+	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], d=data['stamp']))
 	stuff = c.fetchall()
+	data['message'] = string.replace(data['message'], "'", "''")
 	if stuff == []:
 		try:
-			c.execute("INSERT INTO messages VALUES ('{a}', '{b}', '{c}', '{d}', '{e}', '{f}', '{g}', '{h}', '{i}')".format(a=data['sender'], b=data['destination'], c=data['message'], d=data['stamp'], e=data['encoding'], f=data['encryption'], g=data['hashing'], h=data['hash'], i=data['status']))
+			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encoding, :encryption, :hashing, :hash, ':status')", data)
 		except:
 			print('Error: Primary key already exists')
 	closeDB(conn, c)

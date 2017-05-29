@@ -10,6 +10,8 @@ import hashlib
 import base64
 import markdown
 import messageProcess
+import mimetypes
+import string
 from cherrypy.lib.static import serve_fileobj
 
 def get_formated_peer_list():
@@ -46,6 +48,7 @@ def get_formated_message_list(userID):
     for row in messageList :
         name = userdata['fullname']
         pict = userdata['picture']
+        row['message'] = string.replace(row['message'], "''", "'")
         text = markdown.markdown(row['message'])
         if row['sender'] == userdata['username'] :
             pass
@@ -91,6 +94,10 @@ class MainClass(object):
 
     def injakdsjk(self):
         raise cherrypy.HTTPRedirect("login")
+
+    @cherrypy.expose
+    def res(self, resource):
+        return file("res/" + resource)
 
     @cherrypy.expose
     def index(self):
@@ -196,10 +203,20 @@ class MainClass(object):
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
                     req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                     response = urllib2.urlopen(req).read()
+                    response = '0, '
                     if '0, ' in unicode(response):
                         data['status'] = 'DELIVERED'
                     else:
                         data['status'] = 'OUTBOX'
+                    try :
+                        filname = attachments.filename
+                        content_type = mimetypes.guess_type(filname)
+                        attachments = base64.b64encode(attachments.file.read())
+                        payload = {'sender': pls.username, 'destination': currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
+                        response = urllib2.urlopen(req).read()
+                    except:
+                        pass
             db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
         else:
@@ -327,7 +344,7 @@ class MainClass(object):
 
     cherrypy.config.update({'error_page.404': error_page_404})
     cherrypy.config.update({'server.socket_host': '0.0.0.0',
-                            'server.socket_port': 5050,
+                            'server.socket_port': 10008,
                             'engine.autoreload.on': True,
                             'tools.encode.on': True,
                             'tools.encode.encoding': 'utf-8',})

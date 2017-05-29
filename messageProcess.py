@@ -28,7 +28,7 @@ def unprocess(data):
                 pass
             else:
                 thing = Ciphers.AESCipher.decrypt(thing)
-        if data['encryption'] == '2':
+        if data['encryption'] == '3':
             if thing == data['encryption'] or thing == data['destination']:
                 pass
             else:
