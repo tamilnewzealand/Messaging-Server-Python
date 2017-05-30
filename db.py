@@ -120,7 +120,7 @@ def getUserProfile(user):
 	userdata = ''
 	try :
 		c.execute("SELECT * FROM userprofiles WHERE username='{a}'".format(a=user))
-		userdata = [dict(zip(['username', 'ip', 'location', 'lastLogin', 'port', 'fullname', 'position', 'description', 'picture', 'publickey'], row)) for row in c.fetchall()]
+		userdata = [dict(zip(['username', 'ip', 'location', 'lastLogin', 'port', 'fullname', 'position', 'description', 'picture', 'publicKey'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)

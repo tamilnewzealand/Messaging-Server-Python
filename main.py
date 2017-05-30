@@ -13,6 +13,7 @@ import messageProcess
 import mimetypes
 import string
 import os
+import Ciphers
 from cherrypy.lib.static import serve_fileobj
 
 def get_formated_peer_list():
@@ -102,16 +103,13 @@ class MainClass(object):
     
     @cherrypy.expose
     def login_check(self, username, password):
-        try:
-            hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
-            global pls
-            pls = protocol_login_server.protocol_login_server(username, hashed)
-            protocol_login_server.protocol_login_server.reporter_thread(pls)
-            protocol_login_server.protocol_login_server.profile_thread(pls)
-            if pls.status:
-                raise cherrypy.HTTPRedirect("home")
-        except:
-            pass
+        hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
+        global pls
+        pls = protocol_login_server.protocol_login_server(username, hashed)
+        protocol_login_server.protocol_login_server.reporter_thread(pls)
+        protocol_login_server.protocol_login_server.profile_thread(pls)
+        if pls.status:
+            raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
@@ -169,11 +167,11 @@ class MainClass(object):
         
     @cherrypy.expose
     def sendMessage(self, message, attachments):
-        print(cherrypy.url())
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
-            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': '', 'markdown': '0'}
+            data = {'sender': str(pls.username), 'destination': str(currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
+            data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(currentChat)[0]['publicKey'])
             for peer in pls.peerList:
                 if currentChat == peer[1]['username']:
                     payload = json.dumps(data)
@@ -245,7 +243,7 @@ class MainClass(object):
         data = messageProcess.unprocess(data, pls)
         if isinstance(data, basestring):
             return data
-        if data['destination'] == 'pls.username':
+        if data['destination'] == pls.username:
             data['status'] = 'DELIVERED'
         else:
             data['status'] = 'SENDING'

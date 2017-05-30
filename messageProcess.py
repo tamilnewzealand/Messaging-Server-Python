@@ -14,17 +14,17 @@ def unprocess(data, pls):
         data['encryption'] = '0'
     for thing in data:
         if data['encryption'] == '1':
-            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+            if thing == 'encryption' or thing == 'destination':
                 pass
             else:
                 data[thing] = Ciphers.XORCipher.decrypt(data[thing])
         if data['encryption'] == '2':
-            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+            if thing == 'encryption' or thing == 'destination':
                 pass
             else:
                 data[thing] = Ciphers.AESCipher.decrypt(data[thing])
         if data['encryption'] == '3':
-            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+            if thing == 'encryption' or thing == 'destination':
                 pass
             else:
                 if len(unicode(data[thing])) > 256:
@@ -32,10 +32,10 @@ def unprocess(data, pls):
                     n = 256
                     [text[i:i+n] for i in range(0, len(text), n)]
                     for block in text:
-                        block = pls.rsakey.publickey().decrypt(binascii.unhexlify(block))
+                        block = pls.rsakey.decrypt(binascii.unhexlify(block))
                     data[thing] = ''.join(text)
                 else:
-                    data[thing] = pls.rsakey.publickey().decrypt(binascii.unhexlify(data[thing]))
+                    data[thing] = pls.rsakey.decrypt(binascii.unhexlify(data[thing]))
     
     if 'stamp' not in data:
         data['stamp'] = int(time.time())

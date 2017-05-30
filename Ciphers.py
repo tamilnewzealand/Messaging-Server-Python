@@ -53,10 +53,13 @@ class RSA1024Cipher():
     def encrypt(data, key):
         pubkey = RSA.importKey(binascii.unhexlify(key))
         for thing in data:
-            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+            print(data[thing])
+            print(thing)
+            ## add stuff for stamp to convert to string
+            if thing == 'encryption' or thing == 'destination':
                 pass
             else:
-                if len(unicode(data[thing])) > 128:
+                if len(str(data[thing])) > 128:
                     text = data[thing]
                     n = 128
                     [text[i:i+n] for i in range(0, len(text), n)]
@@ -64,6 +67,6 @@ class RSA1024Cipher():
                         block = binascii.hexlify(pubkey.encrypt(block, 32))
                     data[thing] = ''.join(text)
                 else:
-                    data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32))
+                    data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32)[0])
         data['encryption'] = '3'
         return data
