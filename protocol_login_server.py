@@ -27,7 +27,10 @@ class protocol_login_server():
         print("Login starting..")
         data = json.loads(urllib.urlopen("http://ip.jsontest.com/").read())
         ip =  data["ip"]
-        localip = socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        localip = s.getsockname()[0]
+        s.close()
         port = '10008'
         if '130.216' in ip:
             self.location = '0'
@@ -41,8 +44,8 @@ class protocol_login_server():
         else:
             self.location = '2'
         try:
-            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
-            #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
+            #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
+            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
             response = urllib2.urlopen(req).read()
         except:
             if db.checkUserHash(self.username, self.hashed):
@@ -70,7 +73,9 @@ class protocol_login_server():
         response = urllib2.urlopen(req).read()
         self.peerList = json.loads(response).items()
         for peer in self.peerList:
-            db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'])
+            if 'publicKey' not in peer[1]:
+                peer[1]['publicKey'] = ''
+            db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
     
     def reporter_thread(self):
         protocol_login_server.report_API_call(self)
@@ -101,7 +106,7 @@ class protocol_login_server():
                 else:
                     continue
                 try:
-                    payload = {'sender': 'ssit662'}
+                    payload = {'profile_username': peer[1]['username']}
                     payload = json.dumps(payload)
                     req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
                     data = json.loads(urllib2.urlopen(req).read())
@@ -119,4 +124,4 @@ class protocol_login_server():
         self.bs = 16
         self.key = '150ecd12d550d05ad83f18328e536f53'
         self.rsakey = Ciphers.RSA1024Cipher.generatekeys()
-        self.pubkey = self.rsakey.publickey().exportKey('DER')
+        self.pubkey = binascii.hexlify(self.rsakey.publickey().exportKey('DER'))

@@ -6,42 +6,47 @@ from Crypto.Hash import SHA256
 from Crypto.Hash import SHA512
 from passlib.hash import bcrypt
 from passlib.hash import scrypt
+import bleach
+import binascii
 
-def unprocess(data):
+def unprocess(data, pls):
+    if 'encryption' not in data:
+        data['encryption'] = '0'
+    for thing in data:
+        if data['encryption'] == '1':
+            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+                pass
+            else:
+                data[thing] = Ciphers.XORCipher.decrypt(data[thing])
+        if data['encryption'] == '2':
+            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.decrypt(data[thing])
+        if data['encryption'] == '3':
+            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+                pass
+            else:
+                if len(unicode(data[thing])) > 256:
+                    text = data[thing]
+                    n = 256
+                    [text[i:i+n] for i in range(0, len(text), n)]
+                    for block in text:
+                        block = pls.rsakey.publickey().decrypt(binascii.unhexlify(block))
+                    data[thing] = ''.join(text)
+                else:
+                    data[thing] = pls.rsakey.publickey().decrypt(binascii.unhexlify(data[thing]))
+    
     if 'stamp' not in data:
         data['stamp'] = int(time.time())
     if int(data['stamp']) + 31536000 < int(time.time()):
         data['stamp'] = int(time.time())
     if 'encoding' not in data:
-        data['encoding'] = '0'
-    if 'encryption' not in data:
-        data['encryption'] = '0'
-    
-    for thing in data:
-        if data['encryption'] == '1':
-            if thing == data['encryption'] or thing == data['destination']:
-                pass
-            else:
-                thing = Ciphers.XORCipher.decrypt(thing)
-        if data['encryption'] == '2':
-            if thing == data['encryption'] or thing == data['destination']:
-                pass
-            else:
-                thing = Ciphers.AESCipher.decrypt(thing)
-        if data['encryption'] == '3':
-            if thing == data['encryption'] or thing == data['destination']:
-                pass
-            else:
-                thing = Ciphers.RSA1024Cipher.decrypt(thing)
-        if data['encoding'] == '0':
-            thing = thing.decode('ascii')
-        if data['encoding'] == '1':
-            thing = thing.decode('cp-1252')
-        if data['encoding'] == '2':
-            thing = thing.decode('utf-8')
-        if data['encoding'] == '3':
-            thing = thing.decode('utf-16')
-    
+        data['encoding'] = '2'
+    if 'markdown' not in data:
+        data['markdown'] = '0'
+    data['message'] = bleach.clean(data['message'])
+
     if 'hashing' not in data:
         data['hashing'] = '0'
     if 'hash' not in data:

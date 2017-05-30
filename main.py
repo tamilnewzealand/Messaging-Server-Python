@@ -13,18 +13,13 @@ import messageProcess
 import mimetypes
 import string
 import os
-import bleach
 from cherrypy.lib.static import serve_fileobj
 
 def get_formated_peer_list():
     sidebar = ''
     for peer in db.getPeerList() :
-        peer['fullname'] = bleach.clean(peer['fullname'])
-        peer['position'] = bleach.clean(peer['position'])
-        peer['description'] = bleach.clean(peer['description'])
-        peer['picture'] = bleach.clean(peer['picture'])
         name = peer['username']
-        if peer['fullname'] != '':
+        if peer['fullname'] != None:
             name = peer['fullname']
         lastLogin = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
         if int(peer['lastLogin'] or 0) + 86400 > int(time.time()):
@@ -38,7 +33,7 @@ def get_formated_peer_list():
         else:
             name = name + u' 🔴'
         pict = peer['picture']
-        if peer['picture'] == '':
+        if peer['picture'] == None:
             pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
         sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer['username'] + "\'" + """"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 50px; height: 50px;" src=\"""" + pict + """"></a><div class="media-body"><h5 class="media-heading">""" + name + ' </h5><small>Last Online: ' + lastLogin + '</small></div></div>'
     return unicode(sidebar)
@@ -52,8 +47,6 @@ def get_formated_message_list(userID):
     contact = db.getUserProfile(userID)[0]
     userdata = db.getUserProfile(pls.username)[0]
     for row in messageList :
-        for thing in row:
-            row[thing] = bleach.clean(row[thing])
         name = userdata['fullname']
         pict = userdata['picture']
         row['message'] = string.replace(row['message'], "''", "'")
@@ -109,13 +102,16 @@ class MainClass(object):
     
     @cherrypy.expose
     def login_check(self, username, password):
-        hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
-        global pls
-        pls = protocol_login_server.protocol_login_server(username, hashed)
-        protocol_login_server.protocol_login_server.reporter_thread(pls)
-        protocol_login_server.protocol_login_server.profile_thread(pls)
-        if pls.status:
-            raise cherrypy.HTTPRedirect("home")
+        try:
+            hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
+            global pls
+            pls = protocol_login_server.protocol_login_server(username, hashed)
+            protocol_login_server.protocol_login_server.reporter_thread(pls)
+            protocol_login_server.protocol_login_server.profile_thread(pls)
+            if pls.status:
+                raise cherrypy.HTTPRedirect("home")
+        except:
+            pass
         raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
@@ -177,7 +173,7 @@ class MainClass(object):
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
-            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '0', 'encryption': '0', 'hashing': '0', 'hash': '', 'markdown': '0'}
+            data = {'sender': pls.username, 'destination': currentChat, 'message': message, 'markdown': '1', 'stamp': unicode(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': '', 'markdown': '0'}
             for peer in pls.peerList:
                 if currentChat == peer[1]['username']:
                     payload = json.dumps(data)
@@ -192,8 +188,8 @@ class MainClass(object):
                     if data['message'] != "":
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
-                        response = '0, '
-                        if '0, ' in unicode(response):
+                        response = '0: '
+                        if '0: ' in unicode(response):
                             data['status'] = 'DELIVERED'
                         else:
                             data['status'] = 'OUTBOX'
@@ -205,6 +201,10 @@ class MainClass(object):
                         payload = json.dumps(stuff)
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
+                        if '0: ' in unicode(response):
+                            data['status'] = 'DELIVERED'
+                        else:
+                            data['status'] = 'OUTBOX'
                         file = open ('static/downloads/' + filname.encode("ascii"), "wb")
                         file.write(base64.b64decode(attachments))
                         file.close()
@@ -231,7 +231,7 @@ class MainClass(object):
     def listAPI(self):
         return ('Available APIs: /listAPI /ping /recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)] /acknowledge [sender] [stamp] [hash] [hashing] /getPublicKey [sender] /handshake [message] [encryption] /getProfile [sender] /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]' + 
          '<br> Encoding: 0, 2' + 
-         '<br> Encryption: ' + 
+         '<br> Encryption: 0, 1, 2' + 
          '<br> Hashing: ')
         
     @cherrypy.expose
@@ -242,7 +242,7 @@ class MainClass(object):
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         data = cherrypy.request.json
-        data = messageProcess.unprocess(data)
+        data = messageProcess.unprocess(data, pls)
         if isinstance(data, basestring):
             return data
         if data['destination'] == 'pls.username':
@@ -250,7 +250,7 @@ class MainClass(object):
         else:
             data['status'] = 'SENDING'
         if db.addNewMessage(data):
-            return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+            return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return ('1: Missing Compulsory Field')
     
@@ -259,7 +259,7 @@ class MainClass(object):
     def acknowledge(self):
         data = cherrypy.request.json
         if db.lookUpMessage(data):
-            return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+            return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return (u'7: Hash does not match')
         
@@ -268,7 +268,7 @@ class MainClass(object):
     @cherrypy.tools.json_out()
     def getPublicKey(self):
         sender = cherrypy.request.json
-        return {'error': u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': pls.pubkey}
+        return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': pls.pubkey}
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -281,14 +281,14 @@ class MainClass(object):
             data['message'] = Ciphers.AESCipher.decrypt(data['message'])
         if date['encryption'] == '3':
             return {'error': u'9: Encryption Standard Not Supported', 'message': date['message']}
-        return {'error': u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
+        return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def getProfile(self):
         sender = cherrypy.request.json
-        data = db.getUserData(pls.username)
+        data = db.getUserData(sender['profile_username'])
         data[0]['encoding'] = '2'
         data[0]['encryption'] = '0'
         return data[0]  
@@ -310,9 +310,9 @@ class MainClass(object):
             text = '<audio controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></audio>'
         if 'video/' in content_type:
             text = '<video width="320" height="240" controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></video>'
-        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': '0', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered', 'markdown': '0'}
+        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': '2', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered', 'markdown': '0'}
         db.addNewMessage(payload)
-        return (u'0, உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+        return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
     #TODO: add retrieveMessages function
 
@@ -337,7 +337,7 @@ class MainClass(object):
                 return (u'9: Encryption Standard Not Supported')
         if json == 1:
             return json.dumps(peerList)
-        resp = '0, '
+        resp = '0: '
         for peer in peerList:
             resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ','
         return resp

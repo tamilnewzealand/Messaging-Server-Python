@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import binascii
+import urllib
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Cipher import XOR
@@ -8,24 +9,23 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 
 class AESCipher(object):
-    def __init__(self): 
-        self.bs = 16
-        self.key = '41fb5b5ae4d57c5ee528adb078ac3b2e'
-
-    def encrypt(self, raw):
-        raw = self._pad(raw)
-        iv = Random.new().read(self.bs)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+    @staticmethod
+    def encrypt(raw):
+        raw = AESCipher._pad(raw)
+        iv = Random.new().read(16)
+        cipher = AES.new('41fb5b5ae4d57c5ee528adb078ac3b2e', AES.MODE_CBC, iv)
         return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
 
-    def decrypt(self, enc):
+    @staticmethod
+    def decrypt(enc):
         enc = binascii.unhexlify(enc)
         iv = enc[:16]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return cipher.decrypt(enc[16:]).rstrip(PADDING)
+        cipher = AES.new('41fb5b5ae4d57c5ee528adb078ac3b2e', AES.MODE_CBC, iv)
+        return cipher.decrypt(enc[16:]).rstrip(' ')
 
-    def _pad(self, s):
-        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+    @staticmethod
+    def _pad(s):
+        return s + (16 - len(s) % 16) * chr(32)
 
     @staticmethod
     def _unpad(s):
@@ -47,18 +47,23 @@ class RSA1024Cipher():
     def generatekeys():
         random_generator = Random.new().read
         key = RSA.generate(1024, random_generator)
-        with open('.publickey', 'wb') as the_file:
-            the_file.write(key.publickey().exportKey('DER'))
-        with open('.privatekey', 'wb') as the_file:
-            the_file.write(key.exportKey('DER'))
         return key
-
-    @staticmethod
-    def decrypt(text):
-        # TO BE IMPLEMENTED
-        return text
     
     @staticmethod
-    def encrypt(text):
-        # TO BE IMPLEMENTED
-        return text
+    def encrypt(data, key):
+        pubkey = RSA.importKey(binascii.unhexlify(key))
+        for thing in data:
+            if data[thing] == data['encryption'] or data[thing] == data['destination']:
+                pass
+            else:
+                if len(unicode(data[thing])) > 128:
+                    text = data[thing]
+                    n = 128
+                    [text[i:i+n] for i in range(0, len(text), n)]
+                    for block in text:
+                        block = binascii.hexlify(pubkey.encrypt(block, 32))
+                    data[thing] = ''.join(text)
+                else:
+                    data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32))
+        data['encryption'] = '3'
+        return data
