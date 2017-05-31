@@ -97,11 +97,11 @@ class protocol_login_server():
         while True:
             data = None
             for peer in self.peerList:
-                if currentChat == pls.username:
+                if self.currentChat == self.username:
                         peer[1]['ip'] = 'localhost'
                 elif peer[1]['location'] == '2':
                     pass
-                elif peer[1]['location'] == pls.location:
+                elif peer[1]['location'] == self.location:
                     pass
                 else:
                     continue
@@ -118,6 +118,7 @@ class protocol_login_server():
     def __init__(self, username, hashed):
         self.username = username
         self.hashed = hashed
+        self.currrentChat = ''
         self.currentStatus = 'Offline'
         self.status = False
         self.peerList = None

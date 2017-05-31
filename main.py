@@ -70,7 +70,6 @@ def get_formated_message_list(userID):
     
     return messageHistory
 
-currentChat = ''
 header = ''
 footer = "</div><script type='text/javascript'></script></body></html>"
 pls = None
@@ -113,7 +112,7 @@ class MainClass(object):
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
-            currentChat = ''
+            pls.currentChat = ''
             sidebar = get_formated_peer_list()
             sidebar = sidebar + "</div>"
             sidebar = sidebar + "<div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
@@ -156,8 +155,8 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("login.html")
         if pls == None or pls.status:
             userID = userID.replace("\'", "")
-            global currentChat
-            currentChat = userID
+            global pls
+            pls.currentChat = userID
             sidebar = get_formated_peer_list()
             messageHistory = unicode(get_formated_message_list(userID))
             messageHistory = messageHistory + "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + pls.currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
@@ -172,10 +171,10 @@ class MainClass(object):
         if pls.status:
             print(newStatus)
             pls.currentStatus = newStatus
-            if currentChat == '':
+            if pls.currentChat == '':
                 raise cherrypy.HTTPRedirect("home")
             else:
-                raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
+                raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
@@ -184,19 +183,19 @@ class MainClass(object):
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
-            data = {'sender': str(pls.username), 'destination': str(currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
-            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(currentChat)[0]['publicKey'])
+            data = {'sender': str(pls.username), 'destination': str(pls.currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
+            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(pls.currentChat)[0]['publicKey'])
             for peer in pls.peerList:
-                if currentChat == peer[1]['username']:
+                if pls.currentChat == peer[1]['username']:
                     payload = json.dumps(data)
-                    if currentChat == pls.username:
+                    if pls.currentChat == pls.username:
                         peer[1]['ip'] = 'localhost'
                     elif peer[1]['location'] == '2':
                         pass
                     elif peer[1]['location'] == pls.location:
                         pass
                     else:
-                        raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
+                        raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
                     if data['message'] != "":
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
@@ -209,7 +208,7 @@ class MainClass(object):
                         filname = attachments.filename
                         content_type = mimetypes.guess_type(filname)[0]
                         attachments = base64.b64encode(attachments.file.read())
-                        stuff = {'sender': pls.username, 'destination': currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        stuff = {'sender': pls.username, 'destination': pls.currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
                         payload = json.dumps(stuff)
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
@@ -231,7 +230,7 @@ class MainClass(object):
                     except:
                         pass
             db.addNewMessage(data)
-            raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
+            raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
@@ -360,6 +359,7 @@ class MainClass(object):
     cherrypy.config.update({'server.socket_host': '0.0.0.0',
                             'server.socket_port': 10008,
                             'engine.autoreload.on': True,
+                            'tools.sessions.on': True,
                             'tools.encode.on': True,
                             'tools.encode.encoding': 'utf-8',
                             'tools.staticdir.on' : True,
