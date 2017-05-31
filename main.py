@@ -16,6 +16,12 @@ import os
 import Ciphers
 from cherrypy.lib.static import serve_fileobj
 
+header = ''
+footer = "</div><script type='text/javascript'></script></body></html>"
+with open ("chat_header.html", "r") as myfile : 
+    header = myfile.read()
+listLoggedInUsers = []
+
 def get_formated_peer_list():
     sidebar = ''
     for peer in db.getPeerList() :
@@ -44,9 +50,9 @@ def sizeb64(b64string):
 
 def get_formated_message_list(userID):
     messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap" id="your_div">"""
-    messageList = db.readOutMessages(userID, pls.username)
+    messageList = db.readOutMessages(userID, cherrypy.session['userdata'].username)
     contact = db.getUserProfile(userID)[0]
-    userdata = db.getUserProfile(pls.username)[0]
+    userdata = db.getUserProfile(cherrypy.session['userdata'].username)[0]
     for row in messageList :
         name = userdata['fullname']
         pict = userdata['picture']
@@ -70,72 +76,68 @@ def get_formated_message_list(userID):
     
     return messageHistory
 
-header = ''
-footer = "</div><script type='text/javascript'></script></body></html>"
-pls = None
-
 def stop():
-    if pls != None:
-        global pls
-        protocol_login_server.protocol_login_server.logoff_API_call(pls)
-        del pls
-
-with open ("chat_header.html", "r") as myfile : 
-    header = myfile.read()
+    if cherrypy.session['userdata'] != None:
+        protocol_login_server.protocol_login_server.logoff_API_call(cherrypy.session['userdata'])
+        del cherrypy.session['userdata']
+        global listLoggedInUsers
+        del listLoggedInUsers
 
 class MainClass(object):
-
-    _cp_config = {'tools.encode.on': True, 
-                  'tools.encode.encoding': 'utf-8',
-                  'tools.sessions.on' : 'True',}
-  
     @cherrypy.expose
     def logout(self):
-        global pls
-        protocol_login_server.protocol_login_server.logoff_API_call(pls)
-        del pls
+        if 'userdata' in cherrypy.session:
+            protocol_login_server.protocol_login_server.logoff_API_call(cherrypy.session['userdata'])
+            global listLoggedInUsers
+            thisUser = None
+            for user in listLoggedInUsers:
+                if user['username'] == cherrypy.session['userdata'].username:
+                    thisUser = user
+            listLoggedInUsers.remove(thisUser)
+            del cherrypy.session['userdata']
         raise cherrypy.HTTPRedirect("/")
-    
+
     @cherrypy.expose
     def login_check(self, username, password):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
-        global pls
-        pls = protocol_login_server.protocol_login_server(username, hashed)
-        protocol_login_server.protocol_login_server.reporter_thread(pls)
-        protocol_login_server.protocol_login_server.profile_thread(pls)
-        if pls.status:
+        cherrypy.session['userdata'] = protocol_login_server.protocol_login_server(username, hashed)
+        protocol_login_server.protocol_login_server.reporter_thread(cherrypy.session['userdata'])
+        protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
+        if cherrypy.session['userdata'].status:
+            global listLoggedInUsers
+            newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey}
+            listLoggedInUsers.append(newUser)
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def home(self):
-        if pls == None:
+        if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
-        if pls.status:
-            pls.currentChat = ''
+        if cherrypy.session['userdata'].status:
+            cherrypy.session['userdata'].currentChat = ''
             sidebar = get_formated_peer_list()
-            sidebar = sidebar + "</div>"
-            sidebar = sidebar + "<div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
-            sidebar = sidebar + "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + pls.currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
-            return header + sidebar + footer
+            sidebar = sidebar + "</div><div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
+            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + cherrypy.session['userdata'].currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
+            return header + sidebar + statusStuff + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def editProfile(self):
-        if pls == None:
+        if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
-        if pls.status:
+        if cherrypy.session['userdata'].status:
             head = ''
             foot = ''
             with open ("editprofile_header.html", "r") as myfile : 
                 head = myfile.read()
             with open ("editprofile_footer.html", "r") as myfile :
                 foot = myfile.read()
-            payload = db.getUserData(pls.username)
+            payload = db.getUserData(cherrypy.session['userdata'].username)
             if payload == []:
                 payload = [{'picture': '', 'description': '', 'location': '', 'position': '', 'fullname': ''}]
-            sidebar = pls.username + "</div><div class='login-form-1'><form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'><div class='login-form-main-message'></div><div class='main-login-form'><div class='login-group'>"
+            sidebar = cherrypy.session['userdata'].username + "</div><div class='login-form-1'><form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'><div class='login-form-main-message'></div><div class='main-login-form'><div class='login-group'>"
             for thing in payload[0]:
                 if thing == 'username':
                     continue
@@ -146,56 +148,58 @@ class MainClass(object):
 
     @cherrypy.expose
     def updateProfile(self, picture, description, location, position, fullname):
-        db.updateUserData(pls.username, picture, description, location, position, fullname)
-        raise cherrypy.HTTPRedirect("home")
+        db.updateUserData(cherrypy.session['userdata'].username, picture, description, location, position, fullname)
+        if cherrypy.session['userdata'].currentChat == '':
+            raise cherrypy.HTTPRedirect("home")
+        else:
+            raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
 
     @cherrypy.expose
     def chat(self, userID):
-        if pls == None:
+        if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
-        if pls == None or pls.status:
+        if cherrypy.session['userdata'].status:
             userID = userID.replace("\'", "")
-            global pls
-            pls.currentChat = userID
+            cherrypy.session['userdata'].currentChat = userID
             sidebar = get_formated_peer_list()
             messageHistory = unicode(get_formated_message_list(userID))
-            messageHistory = messageHistory + "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + pls.currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
-            return header + sidebar + messageHistory + footer
+            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + cherrypy.session['userdata'].currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
+            return header + sidebar + messageHistory + statusStuff + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def updateStatus(self, newStatus):
-        if pls == None:
+        if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
-        if pls.status:
+        if cherrypy.session['userdata'].status:
             print(newStatus)
-            pls.currentStatus = newStatus
-            if pls.currentChat == '':
+            cherrypy.session['userdata'].currentStatus = newStatus
+            if cherrypy.session['userdata'].currentChat == '':
                 raise cherrypy.HTTPRedirect("home")
             else:
-                raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
+                raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
     def sendMessage(self, message, attachments):
-        if pls == None:
+        if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
-        if pls.status:
-            data = {'sender': str(pls.username), 'destination': str(pls.currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
-            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(pls.currentChat)[0]['publicKey'])
-            for peer in pls.peerList:
-                if pls.currentChat == peer[1]['username']:
+        if cherrypy.session['userdata'].status:
+            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
+            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(cherrypy.session['userdata'].currentChat)[0]['publicKey'])
+            for peer in cherrypy.session['userdata'].peerList:
+                if cherrypy.session['userdata'].currentChat == peer[1]['username']:
                     payload = json.dumps(data)
-                    if pls.currentChat == pls.username:
+                    if cherrypy.session['userdata'].currentChat == cherrypy.session['userdata'].username:
                         peer[1]['ip'] = 'localhost'
                     elif peer[1]['location'] == '2':
                         pass
-                    elif peer[1]['location'] == pls.location:
+                    elif peer[1]['location'] == cherrypy.session['userdata'].location:
                         pass
                     else:
-                        raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
+                        raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                     if data['message'] != "":
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
@@ -208,7 +212,7 @@ class MainClass(object):
                         filname = attachments.filename
                         content_type = mimetypes.guess_type(filname)[0]
                         attachments = base64.b64encode(attachments.file.read())
-                        stuff = {'sender': pls.username, 'destination': pls.currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
                         payload = json.dumps(stuff)
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
@@ -230,7 +234,7 @@ class MainClass(object):
                     except:
                         pass
             db.addNewMessage(data)
-            raise cherrypy.HTTPRedirect("chat?userID=\'" + pls.currentChat + "\'")
+            raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
@@ -253,13 +257,15 @@ class MainClass(object):
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         data = cherrypy.request.json
-        data = messageProcess.unprocess(data, pls)
+        data = messageProcess.unprocess(data)
         if isinstance(data, basestring):
             return data
-        if data['destination'] == pls.username:
-            data['status'] = 'DELIVERED'
-        else:
-            data['status'] = 'SENDING'
+        
+        data['status'] = 'SENDING'
+        for user in listLoggedInUsers:
+            if user['username'] == data['destination']:
+                data['status'] = 'DELIVERED'
+        
         if db.addNewMessage(data):
             return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
@@ -279,7 +285,9 @@ class MainClass(object):
     @cherrypy.tools.json_out()
     def getPublicKey(self):
         sender = cherrypy.request.json
-        return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': pls.pubkey}
+        for user in listLoggedInUsers:
+            if user['username'] == sender['username']:
+                return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': user['pubkey']}
 
     @cherrypy.expose
     @cherrypy.tools.json_in()

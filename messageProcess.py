@@ -9,7 +9,7 @@ from passlib.hash import scrypt
 import bleach
 import binascii
 
-def unprocess(data, pls):
+def unprocess(data):
     if 'encryption' not in data:
         data['encryption'] = '0'
     for thing in data:
@@ -32,10 +32,10 @@ def unprocess(data, pls):
                     n = 256
                     [text[i:i+n] for i in range(0, len(text), n)]
                     for block in text:
-                        block = pls.rsakey.decrypt(binascii.unhexlify(block))
+                        block = rsakey.decrypt(binascii.unhexlify(block))
                     data[thing] = ''.join(text)
                 else:
-                    data[thing] = pls.rsakey.decrypt(binascii.unhexlify(data[thing]))
+                    data[thing] = rsakey.decrypt(binascii.unhexlify(data[thing]))
     
     if 'stamp' not in data:
         data['stamp'] = int(time.time())
