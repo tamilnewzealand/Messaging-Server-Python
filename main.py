@@ -187,7 +187,7 @@ class MainClass(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
-            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
+            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': 1, 'stamp': str(int(time.time())), 'encoding': 2, 'encryption': 0, 'hashing': 0, 'hash': ' ', 'markdown': 0}
             #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(cherrypy.session['userdata'].currentChat)[0]['publicKey'])
             for peer in cherrypy.session['userdata'].peerList:
                 if cherrypy.session['userdata'].currentChat == peer[1]['username']:
@@ -212,7 +212,7 @@ class MainClass(object):
                         filname = attachments.filename
                         content_type = mimetypes.guess_type(filname)[0]
                         attachments = base64.b64encode(attachments.file.read())
-                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': ''}
+                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': ''}
                         payload = json.dumps(stuff)
                         req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
@@ -244,10 +244,18 @@ class MainClass(object):
 
     @cherrypy.expose
     def listAPI(self):
-        return ('Available APIs: /listAPI /ping /recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)] /acknowledge [sender] [stamp] [hash] [hashing] /getPublicKey [sender] /handshake [message] [encryption] /getProfile [sender] /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]' + 
-         '<br> Encoding: 0, 2' + 
-         '<br> Encryption: 0, 1, 2' + 
-         '<br> Hashing: ')
+        return ("""Available APIs: 
+/listAPI 
+/ping 
+/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)]
+/acknowledge [sender] [stamp] [hash] [hashing]
+/getPublicKey [sender]
+/handshake [message] [encryption]
+/getProfile [sender]
+/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] 
+Encoding: 0, 2
+Encryption: 0, 1, 2, 3
+Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         
     @cherrypy.expose
     def ping(self):
@@ -308,8 +316,8 @@ class MainClass(object):
     def getProfile(self):
         sender = cherrypy.request.json
         data = db.getUserData(sender['profile_username'])
-        data[0]['encoding'] = '2'
-        data[0]['encryption'] = '0'
+        data[0]['encoding'] = 2
+        data[0]['encryption'] = 0
         return data[0]  
     
     @cherrypy.expose
@@ -329,7 +337,7 @@ class MainClass(object):
             text = '<audio controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></audio>'
         if 'video/' in content_type:
             text = '<video width="320" height="240" controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></video>'
-        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': '2', 'encryption': '2', 'hashing': '0', 'hash': '', 'status': 'delivered', 'markdown': '0'}
+        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': 2, 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'delivered', 'markdown': 0}
         db.addNewMessage(payload)
         return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
