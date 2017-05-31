@@ -10,17 +10,17 @@ from Crypto import Random
 
 class AESCipher(object):
     @staticmethod
-    def encrypt(raw):
+    def encrypt(raw, aeskey):
         raw = AESCipher._pad(raw)
         iv = Random.new().read(16)
-        cipher = AES.new('41fb5b5ae4d57c5ee528adb078ac3b2e', AES.MODE_CBC, iv)
+        cipher = AES.new(aeskey, AES.MODE_CBC, iv)
         return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
 
     @staticmethod
-    def decrypt(enc):
+    def decrypt(enc, aeskey):
         enc = binascii.unhexlify(enc)
         iv = enc[:16]
-        cipher = AES.new('41fb5b5ae4d57c5ee528adb078ac3b2e', AES.MODE_CBC, iv)
+        cipher = AES.new(aeskey, AES.MODE_CBC, iv)
         return cipher.decrypt(enc[16:]).rstrip(' ')
 
     @staticmethod
@@ -56,17 +56,9 @@ class RSA1024Cipher():
             print(data[thing])
             print(thing)
             ## add stuff for stamp to convert to string
-            if thing == 'encryption' or thing == 'destination':
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender:
                 pass
             else:
-                if len(str(data[thing])) > 128:
-                    text = data[thing]
-                    n = 128
-                    [text[i:i+n] for i in range(0, len(text), n)]
-                    for block in text:
-                        block = binascii.hexlify(pubkey.encrypt(block, 32))
-                    data[thing] = ''.join(text)
-                else:
-                    data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32)[0])
-        data['encryption'] = '3'
+                data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32)[0])
+        data['encryption'] = 3
         return data

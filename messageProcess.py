@@ -9,33 +9,38 @@ from passlib.hash import scrypt
 import bleach
 import binascii
 
-def unprocess(data):
+def unprocess(data, listLoggedInUsers):
     if 'encryption' not in data:
         data['encryption'] = 0
+    
+    if int(data['encryption']) == 4:
+        for user in listLoggedInUsers:
+            if user['username'] == data['destination']:
+                data['decryptionKey'] = user['rsakey'].decrypt(binascii.unhexlify(data['decryptionKey']))
+
     for thing in data:
         if int(data['encryption']) == 1:
-            if thing == 'encryption' or thing == 'destination':
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
                 data[thing] = Ciphers.XORCipher.decrypt(data[thing])
         if int(data['encryption']) == 2:
-            if thing == 'encryption' or thing == 'destination':
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.decrypt(data[thing])
+                data[thing] = Ciphers.AESCipher.decrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
         if int(data['encryption']) == 3:
-            if thing == 'encryption' or thing == 'destination':
+            for user in listLoggedInUsers:
+                if user['username'] == data['destination']:
+                    if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                        pass
+                    else:
+                        data[thing] = user['rsakey'].decrypt(binascii.unhexlify(data[thing]))
+        if int(data['encryption']) == 4:                    
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:
-                if len(unicode(data[thing])) > 256:
-                    text = data[thing]
-                    n = 256
-                    [text[i:i+n] for i in range(0, len(text), n)]
-                    for block in text:
-                        block = rsakey.decrypt(binascii.unhexlify(block))
-                    data[thing] = ''.join(text)
-                else:
-                    data[thing] = rsakey.decrypt(binascii.unhexlify(data[thing]))
+                data[thing] = Ciphers.AESCipher.decrypt(data[thing], data['decryptionKey'])
     
     if 'stamp' not in data:
         data['stamp'] = int(time.time())

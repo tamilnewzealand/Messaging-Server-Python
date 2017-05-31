@@ -274,7 +274,7 @@ class MainClass(object):
 /getProfile [sender]
 /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] 
 Encoding: 0, 2
-Encryption: 0, 1, 2, 3
+Encryption: 0, 1, 2, 3, 4
 Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         
     @cherrypy.expose
@@ -285,7 +285,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_in()
     def receiveMessage(self):
         data = cherrypy.request.json
-        data = messageProcess.unprocess(data)
+        data = messageProcess.unprocess(data, listLoggedInUsers)
         if isinstance(data, basestring):
             return data
         
@@ -314,7 +314,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     def getPublicKey(self):
         sender = cherrypy.request.json
         for user in listLoggedInUsers:
-            if user['username'] == sender['username']:
+            if user['username'] == sender['profile_username']:
                 return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': user['pubkey']}
 
     @cherrypy.expose
@@ -322,11 +322,11 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_out()
     def handshake(self):
         data = cherrypy.request.json
-        if data['encryption'] == '1':
+        if int(data['encryption']) == 1:
             data['message'] = Ciphers.XORCipher.decrypt(data['message'])
-        if data['encryption'] == '2':
-            data['message'] = Ciphers.AESCipher.decrypt(data['message'])
-        if date['encryption'] == '3':
+        elif int(data['encryption']) == 2:
+            data['message'] = Ciphers.AESCipher.decrypt(data['message'], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+        else:
             return {'error': u'9: Encryption Standard Not Supported', 'message': date['message']}
         return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
     
