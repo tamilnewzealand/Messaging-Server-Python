@@ -62,6 +62,7 @@ def get_formated_message_list(userID):
             if contact['picture'] == None:
                 pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
         messageHistory = messageHistory + """<div class="media msg"><a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src=\"""" + pict + """"></a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp']))) + "<br>" + row['status'] + """</small><h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + text + '</small></div></div>'
+    messageHistory = messageHistory + "</div><div class='send-wrap '><textarea name='message' id='MyID' form='usrform' class='form-control send-message' rows='3' placeholder='Write a reply...'></textarea></div><div class='btn-panel'><form accept-charset='UTF-8' action='/sendMessage' id='usrform' method='post' enctype='multipart/form-data'><label for='attachments'> Select a file to upload</label><input type='file' name='attachments' maxlength=50><input type='submit' class=' col-lg-4 text-right btn send-message-btn pull-right' role='button' value='Send Message'/></form></div></div></div>"
     messageHistory = unicode(messageHistory)
 
     if len(messageHistory) < 74 :
@@ -71,8 +72,7 @@ def get_formated_message_list(userID):
 
 currentChat = ''
 header = ''
-footerb = ''
-footer = ''
+footer = "</div><script type='text/javascript'></script></body></html>"
 pls = None
 
 def stop():
@@ -83,10 +83,6 @@ def stop():
 
 with open ("chat_header.html", "r") as myfile : 
     header = myfile.read()
-with open ("chat_footerb.html", "r") as myfile :
-    footerb = myfile.read()
-with open ("chat_footer.html", "r") as myfile :
-    footer = myfile.read()
 
 class MainClass(object):
 
@@ -117,9 +113,12 @@ class MainClass(object):
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
+            currentChat = ''
             sidebar = get_formated_peer_list()
             sidebar = sidebar + "</div>"
-            return header + sidebar + footerb
+            sidebar = sidebar + "<div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
+            sidebar = sidebar + "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + pls.currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
+            return header + sidebar + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
@@ -161,17 +160,32 @@ class MainClass(object):
             currentChat = userID
             sidebar = get_formated_peer_list()
             messageHistory = unicode(get_formated_message_list(userID))
+            messageHistory = messageHistory + "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + pls.currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
             return header + sidebar + messageHistory + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
-        
+
+    @cherrypy.expose
+    def updateStatus(self, newStatus):
+        if pls == None:
+            raise cherrypy.HTTPRedirect("login.html")
+        if pls.status:
+            print(newStatus)
+            pls.currentStatus = newStatus
+            if currentChat == '':
+                raise cherrypy.HTTPRedirect("home")
+            else:
+                raise cherrypy.HTTPRedirect("chat?userID=\'" + currentChat + "\'")
+        else:
+            raise cherrypy.HTTPRedirect("login.html")
+
     @cherrypy.expose
     def sendMessage(self, message, attachments):
         if pls == None:
             raise cherrypy.HTTPRedirect("login.html")
         if pls.status:
             data = {'sender': str(pls.username), 'destination': str(currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encoding': '2', 'encryption': '0', 'hashing': '0', 'hash': ' ', 'markdown': '0'}
-            data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(currentChat)[0]['publicKey'])
+            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(currentChat)[0]['publicKey'])
             for peer in pls.peerList:
                 if currentChat == peer[1]['username']:
                     payload = json.dumps(data)

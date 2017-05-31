@@ -118,6 +118,7 @@ class protocol_login_server():
     def __init__(self, username, hashed):
         self.username = username
         self.hashed = hashed
+        self.currentStatus = 'Offline'
         self.status = False
         self.peerList = None
         self.location = '2'
