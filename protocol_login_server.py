@@ -60,22 +60,28 @@ class protocol_login_server():
             self.status = False
 
     def logoff_API_call(self):
-        req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
-        response = urllib2.urlopen(req).read()
-        print("Response is: " + str(response))
-        if '0, ' in str(response):
-            self.status = False
-        else:
-            self.status = True
+        try:
+            req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
+            response = urllib2.urlopen(req).read()
+            print("Response is: " + str(response))
+            if '0, ' in str(response):
+                self.status = False
+            else:
+                self.status = True
+        except:
+            pass
 
     def getList_API_call(self):
-        req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
-        response = urllib2.urlopen(req).read()
-        self.peerList = json.loads(response).items()
-        for peer in self.peerList:
-            if 'publicKey' not in peer[1]:
-                peer[1]['publicKey'] = ''
-            db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
+        try:
+            req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
+            response = urllib2.urlopen(req).read()
+            selfpeerList = json.loads(response).items()
+            for peer in self.peerList:
+                if 'publicKey' not in peer[1]:
+                    peer[1]['publicKey'] = ''
+                db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
+        except:
+            pass
     
     def reporter_thread(self):
         protocol_login_server.report_API_call(self)
@@ -119,7 +125,6 @@ class protocol_login_server():
         self.username = username
         self.hashed = hashed
         self.currrentChat = ''
-        self.currentStatus = 'Offline'
         self.status = False
         self.peerList = None
         self.location = '2'

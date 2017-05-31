@@ -105,7 +105,7 @@ class MainClass(object):
         protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
         if cherrypy.session['userdata'].status:
             global listLoggedInUsers
-            newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey}
+            newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             listLoggedInUsers.append(newUser)
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login.html")
@@ -118,7 +118,16 @@ class MainClass(object):
             cherrypy.session['userdata'].currentChat = ''
             sidebar = get_formated_peer_list()
             sidebar = sidebar + "</div><div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
-            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + cherrypy.session['userdata'].currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
+            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
+            statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
+            for user in listLoggedInUsers:
+                if user['username'] == cherrypy.session['userdata'].username:
+                    for typ in statusTypes:
+                        if typ == user['status']:
+                            statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
+                        else:
+                            statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
+            statusStuff = statusStuff + "</select></form>"
             return header + sidebar + statusStuff + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
@@ -163,7 +172,16 @@ class MainClass(object):
             cherrypy.session['userdata'].currentChat = userID
             sidebar = get_formated_peer_list()
             messageHistory = unicode(get_formated_message_list(userID))
-            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' selected='" + cherrypy.session['userdata'].currentStatus + "' onchange='if(this.value != 0) { this.form.submit(); }'><option value='Online'>Online</option><option value='Away'>Away</option><option value='Do Not Disturb'>Do Not Disturb</option><option value='Away'>Away</option><option value='Offline'>Offline</option></select></form>"
+            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
+            statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
+            for user in listLoggedInUsers:
+                if user['username'] == cherrypy.session['userdata'].username:
+                    for typ in statusTypes:
+                        if typ == user['status']:
+                            statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
+                        else:
+                            statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
+            statusStuff = statusStuff + "</select></form>"
             return header + sidebar + messageHistory + statusStuff + footer
         else:
             raise cherrypy.HTTPRedirect("login.html")
@@ -173,8 +191,10 @@ class MainClass(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
-            print(newStatus)
-            cherrypy.session['userdata'].currentStatus = newStatus
+            global listLoggedInUsers
+            for user in listLoggedInUsers:
+                if user['username'] == cherrypy.session['userdata'].username:
+                    user['status'] = newStatus
             if cherrypy.session['userdata'].currentChat == '':
                 raise cherrypy.HTTPRedirect("home")
             else:
@@ -344,6 +364,16 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     #TODO: add retrieveMessages function
 
     @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def getStatus(self):
+        data = cherrypy.request.json
+        for user in listLoggedInUsers:
+            if user['username'] == data['profile_username']:
+                return {'status', user['status']}
+
+
+    @cherrypy.expose
     def getList(self, username, encryption=0, json=0):
         peerList = []
         for peer in db.getPeerList():
@@ -371,10 +401,10 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         
     WEB_ROOT = os.getcwd() + '\\static'
 
-    cherrypy.config.update({'error_page.404': error_page_404})
-    cherrypy.config.update({'server.socket_host': '0.0.0.0',
+    cherrypy.config.update({'error_page.404': error_page_404,
+                            'server.socket_host': '0.0.0.0',
                             'server.socket_port': 10008,
-                            'engine.autoreload.on': True,
+                            'engine.autoreload.on': False,
                             'tools.sessions.on': True,
                             'tools.encode.on': True,
                             'tools.encode.encoding': 'utf-8',
