@@ -6,7 +6,6 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Cipher import XOR
 from Crypto.PublicKey import RSA
-from Crypto import Random
 
 class AESCipher(object):
     @staticmethod
@@ -56,9 +55,14 @@ class RSA1024Cipher():
             print(data[thing])
             print(thing)
             ## add stuff for stamp to convert to string
-            if thing == 'encryption' or thing == 'destination' or thing == 'sender:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
                 data[thing] = binascii.hexlify(pubkey.encrypt(data[thing], 32)[0])
         data['encryption'] = 3
         return data
+    
+        @staticmethod
+    def encryptValue(value, key):
+        pubkey = RSA.importKey(binascii.unhexlify(key))
+        return binascii.hexlify(pubkey.encrypt(value, 32)[0])

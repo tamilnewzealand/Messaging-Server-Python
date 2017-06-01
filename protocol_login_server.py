@@ -44,12 +44,13 @@ class protocol_login_server():
         else:
             self.location = '2'
         try:
-            #req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&enc=1')
             req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
             response = urllib2.urlopen(req).read()
+            self.online = True
         except:
             if db.checkUserHash(self.username, self.hashed):
                 response = u'0, Server offline but user verified'
+                self.online = False
             else:
                 response = u'2, Unauthenticated User'
         print("Response is: " + str(response))
@@ -61,25 +62,27 @@ class protocol_login_server():
 
     def logoff_API_call(self):
         try:
-            req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
-            response = urllib2.urlopen(req).read()
-            print("Response is: " + str(response))
-            if '0, ' in str(response):
-                self.status = False
-            else:
-                self.status = True
+            if self.online:
+                req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
+                response = urllib2.urlopen(req).read()
+                print("Response is: " + str(response))
+                if '0, ' in str(response):
+                    self.status = False
+                else:
+                    self.status = True
         except:
             pass
 
     def getList_API_call(self):
         try:
-            req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
-            response = urllib2.urlopen(req).read()
-            selfpeerList = json.loads(response).items()
-            for peer in self.peerList:
-                if 'publicKey' not in peer[1]:
-                    peer[1]['publicKey'] = ''
-                db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
+            if self.online:
+                req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
+                response = urllib2.urlopen(req).read()
+                self.peerList = json.loads(response).items()
+                for peer in self.peerList:
+                    if 'publicKey' not in peer[1]:
+                        peer[1]['publicKey'] = ''
+                    db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
         except:
             pass
     
@@ -127,6 +130,7 @@ class protocol_login_server():
         self.currrentChat = ''
         self.status = False
         self.peerList = None
+        self.online = True
         self.location = '2'
         self.bs = 16
         self.key = '150ecd12d550d05ad83f18328e536f53'

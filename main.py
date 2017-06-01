@@ -14,6 +14,7 @@ import mimetypes
 import string
 import os
 import Ciphers
+from Crypto.Hash import SHA512
 from cherrypy.lib.static import serve_fileobj
 
 header = ''
@@ -57,7 +58,10 @@ def get_formated_message_list(userID):
         name = userdata['fullname']
         pict = userdata['picture']
         row['message'] = string.replace(row['message'], "''", "'")
-        text = markdown.markdown(row['message'])
+        if int(row['markdown']) == 1:
+            text = markdown.markdown(row['message'])
+        else:
+            text = row['message']
         if row['sender'] == userdata['username'] :
             pass
         else :
@@ -207,8 +211,10 @@ class MainClass(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
-            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': 1, 'stamp': str(int(time.time())), 'encoding': 2, 'encryption': 0, 'hashing': 0, 'hash': ' ', 'markdown': 0}
+            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': 1, 'stamp': str(int(time.time())), 'encryption': 0, 'hashing': 0, 'hash': ' ', 'markdown': 1}
             #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(cherrypy.session['userdata'].currentChat)[0]['publicKey'])
+            data['hash'] = SHA512.new(data['message']).hexdigest()
+            data['hashing'] = 3
             for peer in cherrypy.session['userdata'].peerList:
                 if cherrypy.session['userdata'].currentChat == peer[1]['username']:
                     payload = json.dumps(data)
@@ -221,7 +227,7 @@ class MainClass(object):
                     else:
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                     if data['message'] != "":
-                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
+                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
                         response = '0: '
                         if '0: ' in unicode(response):
@@ -283,8 +289,9 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
-    def receiveMessage(self):
+    def receiveMessage(self, encoding):
         data = cherrypy.request.json
+        data['encoding'] = encoding
         data = messageProcess.unprocess(data, listLoggedInUsers)
         if isinstance(data, basestring):
             return data
@@ -333,8 +340,9 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
-    def getProfile(self):
+    def getProfile(self, encoding):
         sender = cherrypy.request.json
+        sender['encoding'] = encoding
         data = db.getUserData(sender['profile_username'])
         data[0]['encoding'] = 2
         data[0]['encryption'] = 0
@@ -386,18 +394,27 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             del peer['fullname']
             if int(encryption) == 1:
                 for thing in peer:
-                    thing = Ciphers.XORCipher.decrypt(thing)
+                    thing = Ciphers.XORCipher.encrypt(thing)
             if int(encryption) == 2:
                 for thing in peer:
-                    thing = Ciphers.AESCipher.decrypt(thing)
+                    thing = Ciphers.AESCipher.encrypt(thing, '41fb5b5ae4d57c5ee528adb078ac3b2e')
             if int(encryption) == 3:
-                return (u'9: Encryption Standard Not Supported')
+                thing = Ciphers.RSA1024Cipher.encrypt(peer, db.getUserProfile(username)[0]['publicKey'])
         if json == 1:
             return json.dumps(peerList)
         resp = '0: '
         for peer in peerList:
             resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ','
         return resp
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def report(self):
+        message = cherrypy.request.json
+        hashed = SHA512.new(data['passphrase']).hexdigest()
+        if message['signature'] == Ciphers.RSA1024Cipher.encryptValue(hashed, db.getUserProfile(message['username'])[0]['publicKey']):
+            pass
+
         
     WEB_ROOT = os.getcwd() + '\\static'
 
