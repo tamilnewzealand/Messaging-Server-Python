@@ -8,35 +8,34 @@ from passlib.hash import bcrypt
 from passlib.hash import scrypt
 import bleach
 import binascii
+import db
+import urllib2
 
 def unprocess(data, listLoggedInUsers):
     if 'encryption' not in data:
         data['encryption'] = 0
     
-    if int(data['encryption']) == 4:
-        for user in listLoggedInUsers:
-            if user['username'] == data['destination']:
-                data['decryptionKey'] = user['rsakey'].decrypt(binascii.unhexlify(data['decryptionKey']))
-
-    for thing in data:
-        if int(data['encryption']) == 1:
+    if int(data['encryption']) == 1:
+        for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
                 data[thing] = Ciphers.XORCipher.decrypt(data[thing])
-        if int(data['encryption']) == 2:
+    if int(data['encryption']) == 2:
+        for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
                 data[thing] = Ciphers.AESCipher.decrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
-        if int(data['encryption']) == 3:
-            for user in listLoggedInUsers:
+    if int(data['encryption']) == 3:
+        for user in listLoggedInUsers:
                 if user['username'] == data['destination']:
-                    if thing == 'encryption' or thing == 'destination' or thing == 'sender':
-                        pass
-                    else:
-                        data[thing] = user['rsakey'].decrypt(binascii.unhexlify(data[thing]))
-        if int(data['encryption']) == 4:                    
+                    data = Ciphers.RSA1024Cipher.decrypt(data, user['rsakey'])
+    if int(data['encryption']) == 4:
+        for user in listLoggedInUsers:
+            if user['username'] == data['destination']:
+                data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(data['decryptionKey'], user['rsakey'])
+        for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:
@@ -85,3 +84,81 @@ def unprocess(data, listLoggedInUsers):
             return data
     
     return str('7: Hash does not match')
+
+def process(data, peer):
+    supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncoding: 0, 2\nEncryption: 0\nHashing: 0"""
+    try:
+        if peer['username'] == 'ssit662':
+            peer['ip'] = 'localhost'
+        supported = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+        supported = supported.split("\n")
+    except:
+        pass
+    
+    if '8' in supported[-1]:
+        data['hashing'] = '8'
+    if '7' in supported[-1]:
+        data['hashing'] = '7'
+    if '6' in supported[-1]:
+        data['hashing'] = '6'
+    if '5' in supported[-1]:
+        data['hashing'] = '5'
+    if '1' in supported[-1]:
+        data['hashing'] = '1'
+    if '2' in supported[-1]:
+        data['hashing'] = '2'
+    if '3' in supported[-1]:
+        data['hashing'] = '3'
+    if '4' in supported[-1]:
+        data['hashing'] = '4'
+    
+    if data['hashing'] == '1':
+        data['hash'] = SHA256.new(data['message']).hexdigest()
+    if data['hashing'] == '2':
+        data['hash'] = SHA256.new(data['message'] + data['sender']).hexdigest()
+    if data['hashing'] == '3':
+        data['hash'] = SHA512.new(data['message']).hexdigest()
+    if data['hashing'] == '4':
+        data['hash'] = SHA512.new(data['message'] + data['sender']).hexdigest()
+    if data['hashing'] == '5':
+        data['hash'] = bcrypt.hash(data['message'])
+    if data['hashing'] == '6':
+        data['hash'] = bcrypt.hash(data['message'] + data['sender'])
+    if data['hashing'] == '7':
+        data['hash'] = scrypt.hash(data['message'])
+    if data['hashing'] == '8':
+        data['hash'] = scrypt.hash(data['message'] + data['sender'])
+    
+    if '1' in supported[-2]:
+        data['encryption'] = '1'
+    if '2' in supported[-2]:
+        data['encryption'] = '2'
+    if '3' in supported[-2]:
+        data['encryption'] = '3'
+    if '4' in supported[-2]:
+        data['encryption'] = '4'
+    
+    if data['encryption'] == '1':
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.XORCipher.encrypt(data[thing])
+    if data['encryption'] == '2':
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.encrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+    if data['encryption'] == '3':
+        data = Ciphers.RSA1024Cipher.encrypt(data, peer['publicKey'])
+    if data['encryption'] == '4':
+        key = Ciphers.AESCipher.generateKeys()
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(key, peer['publicKey'])
+        for thing in data:                  
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.encrypt(data[thing], key)
+
+    return data

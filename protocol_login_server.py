@@ -12,6 +12,7 @@ import binascii
 import Ciphers
 
 centralServer = 'https://cs302.pythonanywhere.com/'
+peerList = None
 
 class protocol_login_server():
     def _pad(self, s):
@@ -60,6 +61,16 @@ class protocol_login_server():
         else:
             self.status = False
 
+    def reporter_thread(self):
+        protocol_login_server.report_API_call(self)
+        thread.start_new_thread(protocol_login_server.reporter_timer, (self, ))
+
+    def reporter_timer(self):
+        starttime=time.time()
+        while True:
+            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
+            protocol_login_server.report_API_call(self)
+
     def logoff_API_call(self):
         try:
             if self.online:
@@ -78,25 +89,24 @@ class protocol_login_server():
             if self.online:
                 req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
                 response = urllib2.urlopen(req).read()
-                self.peerList = json.loads(response).items()
-                for peer in self.peerList:
-                    if 'publicKey' not in peer[1]:
-                        peer[1]['publicKey'] = ''
-                    db.updateUserProfileB(peer[1]['username'], peer[1]['ip'], peer[1]['location'], peer[1]['lastLogin'], peer[1]['port'], peer[1]['publicKey'])
+                global peerList
+                peerList = json.loads(response).values()
+                for peer in peerList:
+                    if 'publicKey' not in peer:
+                        peer['publicKey'] = ''
+                    db.updateUserProfileB(peer['username'], peer['ip'], peer['location'], peer['lastLogin'], peer['port'], peer['publicKey'])
         except:
             pass
     
-    def reporter_thread(self):
-        protocol_login_server.report_API_call(self)
+    def peerlist_thread(self):
         protocol_login_server.getList_API_call(self)
-        thread.start_new_thread(protocol_login_server.reporter_timer, (self, ))
+        thread.start_new_thread(protocol_login_server.peerlist_timer, (self, ))
 
-    def reporter_timer(self):
+    def peerlist_timer(self):
         starttime=time.time()
         while True:
-            protocol_login_server.getList_API_call(self)
-            protocol_login_server.report_API_call(self)
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
+            protocol_login_server.getList_API_call(self)
 
     def profile_thread(self):
         thread.start_new_thread(protocol_login_server.profile_timer, (self, ))
@@ -105,19 +115,19 @@ class protocol_login_server():
         starttime=time.time()
         while True:
             data = None
-            for peer in self.peerList:
+            for peer in peerList:
                 if self.currentChat == self.username:
-                        peer[1]['ip'] = 'localhost'
-                elif peer[1]['location'] == '2':
+                        peer['ip'] = 'localhost'
+                elif peer['location'] == '2':
                     pass
-                elif peer[1]['location'] == self.location:
+                elif peer['location'] == self.location:
                     pass
                 else:
                     continue
                 try:
-                    payload = {'profile_username': peer[1]['username']}
+                    payload = {'profile_username': peer['username']}
                     payload = json.dumps(payload)
-                    req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
+                    req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
                     data = json.loads(urllib2.urlopen(req).read())
                 except:
                     pass
@@ -129,7 +139,6 @@ class protocol_login_server():
         self.hashed = hashed
         self.currrentChat = ''
         self.status = False
-        self.peerList = None
         self.online = True
         self.location = '2'
         self.bs = 16

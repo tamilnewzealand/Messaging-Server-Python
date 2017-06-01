@@ -14,7 +14,6 @@ import mimetypes
 import string
 import os
 import Ciphers
-from Crypto.Hash import SHA512
 from cherrypy.lib.static import serve_fileobj
 
 header = ''
@@ -106,11 +105,13 @@ class MainClass(object):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
         cherrypy.session['userdata'] = protocol_login_server.protocol_login_server(username, hashed)
         protocol_login_server.protocol_login_server.reporter_thread(cherrypy.session['userdata'])
-        protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
         if cherrypy.session['userdata'].status:
             global listLoggedInUsers
             newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             listLoggedInUsers.append(newUser)
+            if len(listLoggedInUsers) == 1:
+                protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
+                protocol_login_server.protocol_login_server.peerlist_thread(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login.html")
 
@@ -211,23 +212,21 @@ class MainClass(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
-            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': 1, 'stamp': str(int(time.time())), 'encryption': 0, 'hashing': 0, 'hash': ' ', 'markdown': 1}
-            #data = Ciphers.RSA1024Cipher.encrypt(data, db.getUserProfile(cherrypy.session['userdata'].currentChat)[0]['publicKey'])
-            data['hash'] = SHA512.new(data['message']).hexdigest()
-            data['hashing'] = 3
-            for peer in cherrypy.session['userdata'].peerList:
-                if cherrypy.session['userdata'].currentChat == peer[1]['username']:
-                    payload = json.dumps(data)
+            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
+            for peer in protocol_login_server.peerList:
+                if cherrypy.session['userdata'].currentChat == peer['username']:
+                    payload = messageProcess.process(data, peer)
+                    payload = json.dumps(payload)
                     if cherrypy.session['userdata'].currentChat == cherrypy.session['userdata'].username:
-                        peer[1]['ip'] = 'localhost'
-                    elif peer[1]['location'] == '2':
+                        peer['ip'] = 'localhost'
+                    elif peer['location'] == '2':
                         pass
-                    elif peer[1]['location'] == cherrypy.session['userdata'].location:
+                    elif peer['location'] == cherrypy.session['userdata'].location:
                         pass
                     else:
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                     if data['message'] != "":
-                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
                         response = '0: '
                         if '0: ' in unicode(response):
@@ -238,9 +237,10 @@ class MainClass(object):
                         filname = attachments.filename
                         content_type = mimetypes.guess_type(filname)[0]
                         attachments = base64.b64encode(attachments.file.read())
-                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': ''}
-                        payload = json.dumps(stuff)
-                        req = urllib2.Request('http://' + unicode(peer[1]['ip']) + ':' + unicode(peer[1]['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
+                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': '', 'hashing': 0}
+                        payload = messageProcess(stuff, peer)
+                        payload = json.dumps(payload)
+                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
                         if '0: ' in unicode(response):
                             data['status'] = 'DELIVERED'
@@ -278,7 +278,10 @@ class MainClass(object):
 /getPublicKey [sender]
 /handshake [message] [encryption]
 /getProfile [sender]
-/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] 
+/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]
+/getStatus [profile_username]
+/getList [username] [encryption] [json]
+/report [username] [passphrase] [signature] [location] [ip] [port] [encryption(opt)]
 Encoding: 0, 2
 Encryption: 0, 1, 2, 3, 4
 Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
@@ -289,9 +292,8 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
-    def receiveMessage(self, encoding):
+    def receiveMessage(self, encoding=0):
         data = cherrypy.request.json
-        data['encoding'] = encoding
         data = messageProcess.unprocess(data, listLoggedInUsers)
         if isinstance(data, basestring):
             return data
@@ -382,30 +384,15 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
 
 
     @cherrypy.expose
-    def getList(self, username, encryption=0, json=0):
-        peerList = []
-        for peer in db.getPeerList():
-            if int(peer['lastLogin'] or 0) + 300 > time.time():
-                peerList.append(peer)  
-        for peer in peerList:
-            del peer['picture']
-            del peer['description']
-            del peer['position']
-            del peer['fullname']
-            if int(encryption) == 1:
-                for thing in peer:
-                    thing = Ciphers.XORCipher.encrypt(thing)
-            if int(encryption) == 2:
-                for thing in peer:
-                    thing = Ciphers.AESCipher.encrypt(thing, '41fb5b5ae4d57c5ee528adb078ac3b2e')
-            if int(encryption) == 3:
-                thing = Ciphers.RSA1024Cipher.encrypt(peer, db.getUserProfile(username)[0]['publicKey'])
-        if json == 1:
-            return json.dumps(peerList)
-        resp = '0: '
-        for peer in peerList:
-            resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ','
-        return resp
+    def getList(self, username, encryption=0, jso=0):
+        if int(jso) == 1:
+            peerlist = {str(k): v for k, v in enumerate(protocol_login_server.peerList)}
+            return json.dumps(peerlist)
+        else:
+            resp = '0: '
+            for peer in protocol_login_server.peerList:
+                resp = resp + peer['username'] + ',' + peer['location'] + ',' + peer['ip'] + ',' + peer['port'] + ',' + peer['lastLogin'] + ',' + peer['publicKey'] + ','
+            return resp
 
     @cherrypy.expose
     @cherrypy.tools.json_in()

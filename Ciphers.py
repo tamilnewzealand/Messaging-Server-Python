@@ -9,6 +9,10 @@ from Crypto.PublicKey import RSA
 
 class AESCipher(object):
     @staticmethod
+    def generateKeys():
+        return binascii.hexlify(Random.new().read(16))
+
+    @staticmethod
     def encrypt(raw, aeskey):
         raw = AESCipher._pad(raw)
         iv = Random.new().read(16)
@@ -52,9 +56,6 @@ class RSA1024Cipher():
     def encrypt(data, key):
         pubkey = RSA.importKey(binascii.unhexlify(key))
         for thing in data:
-            print(data[thing])
-            print(thing)
-            ## add stuff for stamp to convert to string
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
@@ -62,7 +63,20 @@ class RSA1024Cipher():
         data['encryption'] = 3
         return data
     
-        @staticmethod
+    @staticmethod
     def encryptValue(value, key):
         pubkey = RSA.importKey(binascii.unhexlify(key))
         return binascii.hexlify(pubkey.encrypt(value, 32)[0])
+    
+    @staticmethod
+    def decrypt(data, key):
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = key.decrypt(binascii.unhexlify(data[thing]))
+        return data
+    
+    @staticmethod
+    def decryptValue(value, key):
+        return key.decrypt(binascii.unhexlify(value))
