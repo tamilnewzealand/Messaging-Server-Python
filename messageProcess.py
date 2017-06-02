@@ -40,7 +40,7 @@ def unprocess(data, listLoggedInUsers):
                 pass
             else:
                 data[thing] = Ciphers.AESCipher.decrypt(data[thing], data['decryptionKey'])
-    
+        
     if 'stamp' not in data:
         data['stamp'] = int(time.time())
     if int(data['stamp']) + 31536000 < int(time.time()):
@@ -56,31 +56,34 @@ def unprocess(data, listLoggedInUsers):
     if 'hash' not in data:
         data['hash'] = ''
     
+    text = data['message'].encode('utf-8')
+    salt = bin(int(binascii.hexlify(data['sender']),16))
+
     if int(data['hashing']) == 0:
         return data
     if int(data['hashing']) == 1:
-        if SHA256.new(data['message']).hexdigest() == data['hash']:
+        if SHA256.new(text).hexdigest() == data['hash']:
             return data
     if int(data['hashing']) == 2:
-        if SHA256.new(data['message'] + data['sender']).hexdigest() == data['hash']:
+        if SHA256.new(text + salt).hexdigest() == data['hash']:
             return data
     if int(data['hashing']) == 3:
-        if SHA512.new(data['message']).hexdigest() == data['hash']:
+        if SHA512.new(text).hexdigest() == data['hash']:
             return data
     if int(data['hashing']) == 4:
-        if SHA512.new(data['message'] + data['sender']).hexdigest() == data['hash']:
+        if SHA512.new(text + salt).hexdigest() == data['hash']:
             return data
     if int(data['hashing']) == 5:
-        if bcrypt.verify(data['message'], data['hash']):
+        if bcrypt.verify(text, data['hash']):
             return data
     if int(data['hashing']) == 6:
-        if bcrypt.verify(data['message'] + data['sender'], data['hash']):
+        if bcrypt.verify(text + salt, data['hash']):
             return data
     if int(data['hashing']) == 7:
-        if scrypt.verify(data['message'], data['hash']):
+        if scrypt.verify(text, data['hash']):
             return data
     if int(data['hashing']) == 8:
-        if scrypt.verify(data['message'] + data['sender'], data['hash']):
+        if scrypt.verify(text + salt, data['hash']):
             return data
     
     return str('7: Hash does not match')
@@ -111,23 +114,26 @@ def process(data, peer):
         data['hashing'] = '3'
     if '4' in supported[-1]:
         data['hashing'] = '4'
-    
+
+    data['message'] = data['message'].encode('utf-8')
+    salt = bin(int(binascii.hexlify(data['sender']),16))
+
     if data['hashing'] == '1':
         data['hash'] = SHA256.new(data['message']).hexdigest()
     if data['hashing'] == '2':
-        data['hash'] = SHA256.new(data['message'] + data['sender']).hexdigest()
+        data['hash'] = SHA256.new(data['message'] + salt).hexdigest()
     if data['hashing'] == '3':
         data['hash'] = SHA512.new(data['message']).hexdigest()
     if data['hashing'] == '4':
-        data['hash'] = SHA512.new(data['message'] + data['sender']).hexdigest()
+        data['hash'] = SHA512.new(data['message'] + salt).hexdigest()
     if data['hashing'] == '5':
         data['hash'] = bcrypt.hash(data['message'])
     if data['hashing'] == '6':
-        data['hash'] = bcrypt.hash(data['message'] + data['sender'])
+        data['hash'] = bcrypt.hash(data['message'] + salt)
     if data['hashing'] == '7':
         data['hash'] = scrypt.hash(data['message'])
     if data['hashing'] == '8':
-        data['hash'] = scrypt.hash(data['message'] + data['sender'])
+        data['hash'] = scrypt.hash(data['message'] + salt)
     
     if '1' in supported[-2]:
         data['encryption'] = '1'

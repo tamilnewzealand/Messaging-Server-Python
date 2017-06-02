@@ -2,7 +2,7 @@
 
 import sqlite3
 import os.path
-import urllib
+import urllib2
 import string
 
 def initTable(c) :
@@ -10,7 +10,7 @@ def initTable(c) :
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
 	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING)")
-	data = urllib.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
+	data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
 	data = data.replace(",", "'), ('")
 	c.execute("INSERT INTO userprofiles (username) VALUES ('" + data + "')")
 	return c
@@ -34,6 +34,9 @@ def addNewMessage(data):
 	(conn, c) = openDB()
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], d=data['stamp']))
 	stuff = c.fetchall()
+	data['encoding'] = '2'
+	if 'status' not in data:
+		data['status'] = 'OUTBOX'
 	#data['message'] = string.replace(data['message'], "'", "''")
 	if stuff == []:
 		try:
@@ -55,14 +58,14 @@ def readOutMessages(messageUser, myUserID):
 	closeDB(conn, c)
 	return messageList
 
-def lookUpMessage(data):
+def updateMessageStatus(data, newStatus):
 	(conn, c) = openDB()
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']))
 	stuff = c.fetchall()
 	if stuff == []:
 		closeDB(conn, c)
 		return False
-	c.execute("UPDATE messages SET status='SEEN' WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']))
+	c.execute("UPDATE messages SET status='{e}' WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']), e=newStatus)
 	closeDB(conn, c)
 	return True
 

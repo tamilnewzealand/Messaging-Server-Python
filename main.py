@@ -212,11 +212,13 @@ class MainClass(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
-            data = {'sender': str(cherrypy.session['userdata'].username), 'destination': str(cherrypy.session['userdata'].currentChat), 'message': str(message), 'markdown': '1', 'stamp': str(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
+            data = {'sender': unicode(cherrypy.session['userdata'].username), 'destination': unicode(cherrypy.session['userdata'].currentChat), 'message': unicode(message), 'markdown': '1', 'stamp': unicode(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
+            db.addNewMessage(data)
             for peer in protocol_login_server.peerList:
                 if cherrypy.session['userdata'].currentChat == peer['username']:
-                    payload = messageProcess.process(data, peer)
-                    payload = json.dumps(payload)
+                    sentMessage = data
+                    data = messageProcess.process(data, peer)
+                    payload = json.dumps(data)
                     if cherrypy.session['userdata'].currentChat == cherrypy.session['userdata'].username:
                         peer['ip'] = 'localhost'
                     elif peer['location'] == '2':
@@ -228,11 +230,8 @@ class MainClass(object):
                     if data['message'] != "":
                         req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
-                        response = '0: '
-                        if '0: ' in unicode(response):
-                            data['status'] = 'DELIVERED'
-                        else:
-                            data['status'] = 'OUTBOX'
+                        if '0: ' in response:
+                            db.updateMessageStatus(sentMessage, 'DELIVERED')
                     try :
                         filname = attachments.filename
                         content_type = mimetypes.guess_type(filname)[0]
@@ -243,9 +242,7 @@ class MainClass(object):
                         req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                         response = urllib2.urlopen(req).read()
                         if '0: ' in unicode(response):
-                            data['status'] = 'DELIVERED'
-                        else:
-                            data['status'] = 'OUTBOX'
+                            db.updateMessageStatus(sentMessage, 'DELIVERED')
                         file = open ('static/downloads/' + filname.encode("ascii"), "wb")
                         file.write(base64.b64decode(attachments))
                         file.close()
@@ -259,7 +256,6 @@ class MainClass(object):
                         data['message'] = data['message'] + text
                     except:
                         pass
-            db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
@@ -292,7 +288,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
-    def receiveMessage(self, encoding=0):
+    def receiveMessage(self, encoding=2):
         data = cherrypy.request.json
         data = messageProcess.unprocess(data, listLoggedInUsers)
         if isinstance(data, basestring):
@@ -312,7 +308,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_in()
     def acknowledge(self):
         data = cherrypy.request.json
-        if db.lookUpMessage(data):
+        if db.updateMessageStatus(data, 'SEEN'):
             return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return (u'7: Hash does not match')
@@ -333,16 +329,23 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         data = cherrypy.request.json
         if int(data['encryption']) == 1:
             data['message'] = Ciphers.XORCipher.decrypt(data['message'])
-        elif int(data['encryption']) == 2:
+        if int(data['encryption']) == 2:
             data['message'] = Ciphers.AESCipher.decrypt(data['message'], '41fb5b5ae4d57c5ee528adb078ac3b2e')
-        else:
-            return {'error': u'9: Encryption Standard Not Supported', 'message': date['message']}
+        if int(data['encryption']) == 3:
+            for user in listLoggedInUsers:
+                if user['username'] == data['destination']:
+                    data['message'] = Ciphers.RSA1024Cipher.decryptValue(data['message'], user['rsakey'])
+        if int(data['encryption']) == 4:
+            for user in listLoggedInUsers:
+                if user['username'] == data['destination']:
+                    data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(data['decryptionKey'], user['rsakey'])
+            data['message'] = Ciphers.AESCipher.decrypt(data['message'], data['decryptionKey'])
         return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
-    def getProfile(self, encoding):
+    def getProfile(self):
         sender = cherrypy.request.json
         sender['encoding'] = encoding
         data = db.getUserData(sender['profile_username'])
@@ -384,7 +387,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
 
 
     @cherrypy.expose
-    def getList(self, username, encryption=0, jso=0):
+    def getList(self, username, jso=0):
         if int(jso) == 1:
             peerlist = {str(k): v for k, v in enumerate(protocol_login_server.peerList)}
             return json.dumps(peerlist)

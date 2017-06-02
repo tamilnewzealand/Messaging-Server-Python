@@ -26,7 +26,7 @@ class protocol_login_server():
     
     def report_API_call(self):
         print("Login starting..")
-        data = json.loads(urllib.urlopen("http://ip.jsontest.com/").read())
+        data = json.loads(urllib2.urlopen("http://ip.jsontest.com/").read())
         ip =  data["ip"]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
