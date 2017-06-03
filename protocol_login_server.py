@@ -137,8 +137,8 @@ class protocol_login_server():
         while True:
             data = None
             for peer in peerList:
-                if self.currentChat == self.username:
-                        peer['ip'] = 'localhost'
+                if peer['ip'] == self.ip:
+                    continue
                 elif peer['location'] == '2':
                     pass
                 elif peer['location'] == self.location:
@@ -150,9 +150,9 @@ class protocol_login_server():
                     payload = json.dumps(payload)
                     req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
                     data = json.loads(urllib2.urlopen(req).read())
+                    db.updateUserProfileA(data)
                 except:
                     pass
-                db.updateUserProfileA(data)
             time.sleep(300.0 - ((time.time() - starttime) % 300.0))
     
     def __init__(self, username, hashed):
