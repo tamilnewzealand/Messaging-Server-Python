@@ -8,7 +8,7 @@ import string
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
-	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING)")
+	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING)")
 	data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
 	data = data.replace(",", "'), ('")
@@ -74,20 +74,20 @@ def getUserData(user):
 	userdata = ''
 	try :
 		c.execute("SELECT * FROM usernames WHERE username='{a}'".format(a=user))
-		userdata = [dict(zip(['username', 'fullname', 'position', 'description', 'location', 'picture'], row)) for row in c.fetchall()]
+		userdata = [dict(zip(['username', 'fullname', 'position', 'description', 'location', 'picture', 'hash', 'tfa'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)
 	return userdata
 
-def updateUserData(username, picture, description, location, position, fullname):
+def updateUserData(username, picture, description, location, position, fullname, tfa):
 	try :
 		(conn, c) = openDB()
 		c.execute("SELECT * FROM usernames WHERE username='{a}'".format(a=username))
 		stuff = c.fetchall()
 		if stuff == []:
-			c.execute("INSERT INTO usernames VALUES ('{a}', '{b}', '{c}', '{d}', '{e}', '{f}')".format(a=username, b=fullname, c=position, d=description, e=location, f=picture))
-		c.execute("UPDATE usernames SET fullname='{b}', position='{c}', description='{d}', location='{e}', picture='{f}' WHERE username='{a}'".format(a=username, b=fullname, c=position, d=description, e=location, f=picture))
+			c.execute("INSERT INTO usernames VALUES ('{a}', '{b}', '{c}', '{d}', '{e}', '{f}', '{g}')".format(a=username, b=fullname, c=position, d=description, e=location, f=picture, g=tfa))
+		c.execute("UPDATE usernames SET fullname='{b}', position='{c}', description='{d}', location='{e}', picture='{f}', tfa='{g}' WHERE username='{a}'".format(a=username, b=fullname, c=position, d=description, e=location, f=picture, g=tfa))
 		closeDB(conn, c)
 	except :
 		pass

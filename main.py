@@ -105,6 +105,23 @@ class MainClass(object):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
         cherrypy.session['userdata'] = protocol_login_server.protocol_login_server(username, hashed)
         protocol_login_server.protocol_login_server.reporter_thread(cherrypy.session['userdata'])
+        if cherrypy.session['userdata'].tfa:
+            raise cherrypy.HTTPRedirect("tfa.html")
+        if cherrypy.session['userdata'].status:
+            global listLoggedInUsers
+            newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
+            listLoggedInUsers.append(newUser)
+            if len(listLoggedInUsers) == 1:
+                protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
+                protocol_login_server.protocol_login_server.peerlist_thread(cherrypy.session['userdata'])
+            raise cherrypy.HTTPRedirect("home")
+        raise cherrypy.HTTPRedirect("login.html")
+    
+    @cherrypy.expose
+    def tfa_check(self, seccode):
+        if int(seccode) == int(cherrypy.session['userdata'].seccode):
+            cherrypy.session['userdata'].status = True
+            cherrypy.session['userdata'].tfa = False
         if cherrypy.session['userdata'].status:
             global listLoggedInUsers
             newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
@@ -156,13 +173,21 @@ class MainClass(object):
                 if thing == 'username':
                     continue
                 sidebar = sidebar + "<div class='form-group'><label for='" + thing + "' class='sr-only'>" + thing + "</label><input type='text' class='form-control' id='" + thing + "' name='" + thing + "' placeholder='" + thing + "' value='" + payload[0][thing] + "'></div>"
+            if payload[0]['tfa'] == 'on':
+                sidebar = sidebar + "<div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa' checked><label for='tfa'>Two Factor Authentication</label></div>"
+            else:
+                sidebar = sidebar + "<div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa'><label for='tfa'>Two Factor Authentication</label></div>"
             return head + sidebar.encode("ascii") + foot
         else:
             raise cherrypy.HTTPRedirect("login.html")
 
     @cherrypy.expose
-    def updateProfile(self, picture, description, location, position, fullname):
-        db.updateUserData(cherrypy.session['userdata'].username, picture, description, location, position, fullname)
+    def updateProfile(self, picture, description, location, position, fullname, tfa):
+        if tfa[1] == 'on':
+            tfa = 'on'
+        else:
+            tfa = 'off'
+        db.updateUserData(cherrypy.session['userdata'].username, picture, description, location, position, fullname, tfa)
         if cherrypy.session['userdata'].currentChat == '':
             raise cherrypy.HTTPRedirect("home")
         else:

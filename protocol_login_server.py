@@ -5,6 +5,7 @@ import time
 import thread
 import socket
 import db
+import tfa
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
@@ -24,28 +25,49 @@ class protocol_login_server():
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
     
-    def report_API_call(self):
-        print("Login starting..")
+    def first_report_API_call(self):
         data = json.loads(urllib2.urlopen("http://ip.jsontest.com/").read())
-        ip =  data["ip"]
+        self.ip =  data["ip"]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         localip = s.getsockname()[0]
         s.close()
-        port = '10008'
-        if '130.216' in ip:
+        if '130.216' in self.ip:
             self.location = '0'
-            ip = localip
+            self.ip = localip
         elif '172.23' in localip:
             self.location = '1'
-            ip = localip
+            self.ip = localip
         elif '172.24' in localip:
             self.location = '1'
-            ip = localip
+            self.ip = localip
         else:
             self.location = '2'
         try:
-            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(ip) + '&port=' + self.encrypt(port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
+            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
+            response = urllib2.urlopen(req).read()
+            self.online = True
+        except:
+            if db.checkUserHash(self.username, self.hashed):
+                response = u'0, Server offline but user verified'
+                self.online = False
+            else:
+                response = u'2, Unauthenticated User'
+        print("Response is: " + str(response))
+        if '0, ' in str(response):
+            db.updateUserHash(self.username, self.hashed)
+            if db.getUserData(self.username)[0]['tfa'] == 'on':
+                self.status = False
+                self.tfa = True
+                self.seccode = tfa.tfainit(self.username)
+            else:
+                self.status = True
+        else:
+            self.status = False
+    
+    def report_API_call(self):
+        try:
+            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
             response = urllib2.urlopen(req).read()
             self.online = True
         except:
@@ -57,12 +79,11 @@ class protocol_login_server():
         print("Response is: " + str(response))
         if '0, ' in str(response):
             self.status = True
-            db.updateUserHash(self.username, self.hashed)
         else:
             self.status = False
 
     def reporter_thread(self):
-        protocol_login_server.report_API_call(self)
+        protocol_login_server.first_report_API_call(self)
         thread.start_new_thread(protocol_login_server.reporter_timer, (self, ))
 
     def reporter_timer(self):
@@ -137,8 +158,12 @@ class protocol_login_server():
     def __init__(self, username, hashed):
         self.username = username
         self.hashed = hashed
+        self.port = '10008'
+        self.ip = ''
         self.currrentChat = ''
         self.status = False
+        self.tfa = False
+        self.seccode = ''
         self.online = True
         self.location = '2'
         self.bs = 16
