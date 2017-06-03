@@ -238,7 +238,30 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("login.html")
         if cherrypy.session['userdata'].status:
             data = {'sender': unicode(cherrypy.session['userdata'].username), 'destination': unicode(cherrypy.session['userdata'].currentChat), 'message': unicode(message), 'markdown': '1', 'stamp': unicode(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
-            db.addNewMessage(data)
+            files = False
+            stuff = None
+            text = ""
+            try:
+                filname = attachments.filename
+                content_type = mimetypes.guess_type(filname)[0]
+                attachments = base64.b64encode(attachments.file.read())
+                file = open ('static/downloads/' + filname.encode("ascii"), "wb")
+                file.write(base64.b64decode(attachments))
+                file.close()
+                text = '<a href=\"downloads\\' + filname + '\" download>' + filname + '</a>'
+                if 'image/' in content_type:
+                    text = '<img src=\"downloads\\' + filname + '\" alt=\"' + filname + '\" width="320">'
+                if 'audio/' in content_type:
+                    text = '<audio controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></audio>'
+                if 'video/' in content_type:
+                    text = '<video width="320" height="240" controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></video>'
+                stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': '', 'hashing': 0}
+                files = True
+            except:
+                pass
+            if not files:
+                db.addNewMessage(data)
+            offline = True
             for peer in protocol_login_server.peerList:
                 if cherrypy.session['userdata'].currentChat == peer['username']:
                     sentMessage = data
@@ -253,34 +276,54 @@ class MainClass(object):
                     else:
                         raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                     if data['message'] != "":
-                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
-                        response = urllib2.urlopen(req).read()
-                        if '0: ' in response:
-                            db.updateMessageStatus(sentMessage, 'DELIVERED')
-                    try :
-                        filname = attachments.filename
-                        content_type = mimetypes.guess_type(filname)[0]
-                        attachments = base64.b64encode(attachments.file.read())
-                        stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': '', 'hashing': 0}
-                        payload = messageProcess(stuff, peer)
+                        try:
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                            response = urllib2.urlopen(req).read()
+                            if '0: ' in response:
+                                db.updateMessageStatus(sentMessage, 'DELIVERED')
+                            offline = False
+                        except:
+                            pass
+                    if files:
+                        payload = messageProcess.process(stuff, peer)
                         payload = json.dumps(payload)
-                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
-                        response = urllib2.urlopen(req).read()
-                        if '0: ' in unicode(response):
-                            db.updateMessageStatus(sentMessage, 'DELIVERED')
-                        file = open ('static/downloads/' + filname.encode("ascii"), "wb")
-                        file.write(base64.b64decode(attachments))
-                        file.close()
-                        text = '<a href=\"downloads\\' + filname + '\" download>' + filname + '</a>'
-                        if 'image/' in content_type:
-                            text = '<img src=\"downloads\\' + filname + '\" alt=\"' + filname + '\" width="320">'
-                        if 'audio/' in content_type:
-                            text = '<audio controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></audio>'
-                        if 'video/' in content_type:
-                            text = '<video width="320" height="240" controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></video>'
-                        data['message'] = data['message'] + text
-                    except:
+                        try:
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
+                            response = urllib2.urlopen(req).read()
+                        except:
+                            pass
+                        sentMessage['message'] = sentMessage['message'] + text
+                        sentMessage['status'] = 'SENT'
+                        db.addNewMessage(sentMessage)
+            if offline:
+                payload = json.dumps(data)
+                payloads = json.dumps(stuff)
+                for peer in protocol_login_server.peerList:
+                    if cherrypy.session['userdata'].currentChat == cherrypy.session['userdata'].username:
+                        continue
+                    elif peer['location'] == '2':
                         pass
+                    elif peer['location'] == cherrypy.session['userdata'].location:
+                        pass
+                    else:
+                        continue
+                    if data['message'] != "":
+                        try:
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                            response = urllib2.urlopen(req).read()
+                            if '0: ' in response:
+                                db.updateMessageStatus(data, 'IN TRANSIT')
+                        except:
+                            pass
+                    if files:
+                        try:
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payloads, {'Content-Type': 'application/json'})
+                            response = urllib2.urlopen(req).read()
+                        except:
+                            pass
+                        data['message'] = data['message'] + text
+                        data['status'] = 'IN TRANSIT'
+                        db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
             raise cherrypy.HTTPRedirect("login.html")
@@ -319,7 +362,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         if isinstance(data, basestring):
             return data
         
-        data['status'] = 'SENDING'
+        data['status'] = 'IN TRANSIT'
         for user in listLoggedInUsers:
             if user['username'] == data['destination']:
                 data['status'] = 'DELIVERED'
@@ -381,7 +424,9 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveFile(self):
-        data = cherrypy.request.json
+        data = messageProcess.unprocess(data, listLoggedInUsers)
+        if isinstance(data, basestring):
+            return data
         if sizeb64(data['file']) > 5242880:
             return (u'6, உங்கள் கோப்பு எல்லைக்குள் இல்லை')
         file = open ('static/downloads/' + data['filename'].encode("ascii"), "wb")
@@ -395,7 +440,10 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             text = '<audio controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></audio>'
         if 'video/' in content_type:
             text = '<video width="320" height="240" controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></video>'
-        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': 2, 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'delivered', 'markdown': 0}
+        payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': 2, 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'IN TRANSIT', 'markdown': 0}
+        for user in listLoggedInUsers:
+            if user['username'] == payload['destination']:
+                payload['status'] = 'DELIVERED'
         db.addNewMessage(payload)
         return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
@@ -412,8 +460,8 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
 
 
     @cherrypy.expose
-    def getList(self, username, jso=0):
-        if int(jso) == 1:
+    def getList(self, username, json_format=0):
+        if int(json_format) == 1:
             peerlist = {str(k): v for k, v in enumerate(protocol_login_server.peerList)}
             return json.dumps(peerlist)
         else:
