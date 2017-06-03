@@ -109,6 +109,22 @@ class protocol_login_server():
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
             protocol_login_server.report_API_call(self)
 
+    def retrieve_messages_thread(self):
+        thread.start_new_thread(protocol_login_server.retrieve_messages, (self, ))
+
+    def retrieve_messages(self):
+        for peer in peerList:
+            data = {'requestor': self.username}
+            payload = json.dumps(data)
+            try:
+                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/retrieveMessages', payload, {'Content-Type': 'application/json'})
+                response = urllib2.urlopen(req).read()
+            except:
+                pass
+        thread.exit()
+        return 0
+        
+
     def logoff_API_call(self):
         try:
             if self.online:

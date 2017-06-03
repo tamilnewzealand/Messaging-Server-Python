@@ -113,8 +113,9 @@ class MainClass(object):
             newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             listLoggedInUsers.append(newUser)
             if len(listLoggedInUsers) == 1:
-                protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
                 protocol_login_server.protocol_login_server.peerlist_thread(cherrypy.session['userdata'])
+                protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
+                protocol_login_server.protocol_login_server.retrieve_messages_thread(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login.html")
     
