@@ -58,6 +58,17 @@ def readOutMessages(messageUser, myUserID):
 	closeDB(conn, c)
 	return messageList
 
+def getTransitingMessages(messageUser):
+	(conn, c) = openDB()
+	messageList = ''
+	try :
+		c.execute("SELECT * FROM messages WHERE destination='{a}' AND status='IN TRANSIT'".format(a=messageUser))
+		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encoding', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
+	except :
+		pass
+	closeDB(conn, c)
+	return messageList
+
 def updateMessageStatus(data, newStatus):
 	(conn, c) = openDB()
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']))

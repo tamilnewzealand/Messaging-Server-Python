@@ -343,6 +343,7 @@ class MainClass(object):
 /handshake [message] [encryption]
 /getProfile [sender]
 /recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash]
+/retrieveMessages [sender]
 /getStatus [profile_username]
 /getList [username] [encryption] [json]
 /report [username] [passphrase] [signature] [location] [ip] [port] [encryption(opt)]
@@ -415,7 +416,6 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_out()
     def getProfile(self):
         sender = cherrypy.request.json
-        sender['encoding'] = encoding
         data = db.getUserData(sender['profile_username'])
         data[0]['encoding'] = 2
         data[0]['encryption'] = 0
@@ -447,7 +447,39 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         db.addNewMessage(payload)
         return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
     
-    #TODO: add retrieveMessages function
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def retrieveMessages(self):
+        inputs = cherrypy.request.json
+        messages = db.getTransitingMessages(inputs['requestor'])
+        for message in messages:
+            if "downloads\\" in message['message']:
+                filname = message['message'].split("\\")[1].split('"')[0]
+                content_type = mimetypes.guess_type(filname)[0]
+                file = open ('static/downloads/' + filname.encode("ascii"), "rb")
+                attachments = base64.b64encode(file.read())
+                file.close()
+                for peer in protocol_login_server.peerList:
+                    if message['destination'] == peer['username']:
+                        stuff = {'sender': message['sender'], 'destination': message['desination'], 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': message['stamp'], 'encryption': 0, 'hash': '', 'hashing': 0}
+                        data = messageProcess.process(stuff, peer)
+                        payload = json.dumps(data)
+                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
+                        response = urllib2.urlopen(req).read()
+                        db.updateMessageStatus(message, 'DELIVERED')
+            else:
+                data = message
+                for peer in protocol_login_server.peerList:
+                    if message['destination']== peer['username']:
+                        data = messageProcess.process(data, peer)
+                        payload = json.dumps(data)
+                        try:
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                            response = urllib2.urlopen(req).read()
+                            db.updateMessageStatus(message, 'DELIVERED')
+                        except:
+                            pass
+        return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
