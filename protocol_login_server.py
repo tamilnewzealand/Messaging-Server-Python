@@ -9,11 +9,17 @@ import tfa
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA512
 import binascii
 import Ciphers
+import random
+import string
 
 centralServer = 'https://cs302.pythonanywhere.com/'
 peerList = None
+
+def randomword(length):
+   return ''.join(random.choice(string.lowercase) for i in range(length))
 
 class protocol_login_server():
     def _pad(self, s):
@@ -72,6 +78,17 @@ class protocol_login_server():
             self.online = True
         except:
             if db.checkUserHash(self.username, self.hashed):
+                for peer in peerList:
+                    passphrase = randomword(1024)
+                    hashed = SHA512.new(passphrase).hexdigest()
+                    signature = self.rsakey.encrypt(hashed)
+                    data = {'username': self.username, 'passphrase': passphrase, 'signature': signature, 'location': self.location, 'ip': self.ip, 'port': self.port}
+                    payload = json.dumps(data)
+                    try:
+                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/report', payload, {'Content-Type': 'application/json'})
+                        response = urllib2.urlopen(req).read()
+                    except:
+                        pass
                 response = u'0, Server offline but user verified'
                 self.online = False
             else:
@@ -116,6 +133,15 @@ class protocol_login_server():
                     if 'publicKey' not in peer:
                         peer['publicKey'] = ''
                     db.updateUserProfileB(peer['username'], peer['ip'], peer['location'], peer['lastLogin'], peer['port'], peer['publicKey'])
+            else:
+                newPeerList = peerList
+                for peer in peerList:
+                    if peer['ip'] != self.ip:
+                        req = urllib2.Request(centralServer + 'getList?username=' + self.username + '&json_format=1')
+                        newPeerList.extend(json.loads(urllib2.urlopen(req).read()).values())
+                somelist = [x for x in newPeerList if (int(x['stamp']) + 120 > int(time.time()))]
+                global peerList
+                peerList = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in somelist)]
         except:
             pass
     

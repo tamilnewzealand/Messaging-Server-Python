@@ -14,6 +14,7 @@ import mimetypes
 import string
 import os
 import Ciphers
+from Crypto.Hash import SHA512
 from cherrypy.lib.static import serve_fileobj
 
 header = ''
