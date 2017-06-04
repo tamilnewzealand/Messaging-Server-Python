@@ -250,13 +250,13 @@ class MainClass(object):
                 file = open ('static/downloads/' + filname.encode("ascii"), "wb")
                 file.write(base64.b64decode(attachments))
                 file.close()
-                text = '<a href=\"downloads\\' + filname + '\" download>' + filname + '</a>'
+                text = '<a href="' + os.path.join('donwloads', filname) + '" download>' + filname + '</a>'
                 if 'image/' in content_type:
-                    text = '<img src=\"downloads\\' + filname + '\" alt=\"' + filname + '\" width="320">'
+                    text = '<img src="' + os.path.join('donwloads', filname) + '\" alt=\"' + filname + '\" width="320">'
                 if 'audio/' in content_type:
-                    text = '<audio controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></audio>'
+                    text = '<audio controls><source src="' + os.path.join('donwloads', filname) + '\" type=\"' + content_type + '\"></audio>'
                 if 'video/' in content_type:
-                    text = '<video width="320" height="240" controls><source src=\"downloads\\' + filname + '\" type=\"' + content_type + '\"></video>'
+                    text = '<video width="320" height="240" controls><source src="' + os.path.join('donwloads', filname) + '\" type=\"' + content_type + '\"></video>'
                 stuff = {'sender': cherrypy.session['userdata'].username, 'destination': cherrypy.session['userdata'].currentChat, 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': 0, 'hash': '', 'hashing': 0}
                 files = True
             except:
@@ -437,13 +437,13 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         file.write(base64.b64decode(data['file']))
         file.close()
         content_type = mimetypes.guess_type(data['filename'])[0]
-        text = '<a href=\"downloads\\' + data['filename'] + '\" download>' + data['filename'] + '</a>'
+        text = '<a href="'  + os.path.join('donwloads', data['filename']) + '\" download>' + data['filename'] + '</a>'
         if 'image/' in content_type:
-            text = '<img src=\"downloads\\' + data['filename'] + '\" alt=\"' + data['filename'] + '\" width="320">'
+            text = '<img src="'  + os.path.join('donwloads', data['filename']) + '\" alt=\"' + data['filename'] + '\" width="320">'
         if 'audio/' in content_type:
-            text = '<audio controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></audio>'
+            text = '<audio controls><source src="' + os.path.join('donwloads', data['filename']) + '\" type=\"' + content_type + '\"></audio>'
         if 'video/' in content_type:
-            text = '<video width="320" height="240" controls><source src=\"downloads\\' + data['filename'] + '\" type=\"' + content_type + '\"></video>'
+            text = '<video width="320" height="240" controls><source src="'  + os.path.join('donwloads', data['filename']) s+ '\" type=\"' + content_type + '\"></video>'
         payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': 2, 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'IN TRANSIT', 'markdown': 0}
         for user in listLoggedInUsers:
             if user['username'] == payload['destination']:
@@ -515,7 +515,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             pass
 
         
-    WEB_ROOT = os.getcwd() + '\\static'
+    WEB_ROOT = os.path.join(os.getcwd(), 'static') 
 
     cherrypy.config.update({'error_page.404': error_page_404,
                             'server.socket_host': '0.0.0.0',
