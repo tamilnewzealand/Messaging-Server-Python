@@ -192,6 +192,7 @@ class protocol_login_server():
                     payload = json.dumps(payload)
                     req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
                     data = json.loads(urllib2.urlopen(req).read())
+                    data['username'] = peer['username']
                     db.updateUserProfileA(data)
                 except:
                     pass

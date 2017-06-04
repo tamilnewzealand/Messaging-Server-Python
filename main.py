@@ -72,7 +72,7 @@ def get_formated_message_list(userID):
             if contact['picture'] == None:
                 pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
         messageHistory = messageHistory + """<div class="media msg"><a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src=\"""" + pict + """"></a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp']))) + "<br>" + row['status'] + """</small><h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + text + '</small></div></div>'
-    messageHistory = messageHistory + "</div><div class='send-wrap '><textarea name='message' id='message' form='usrform' class='form-control send-message' rows='3' placeholder='Write a reply...'></textarea></div><div class='btn-panel'><form accept-charset='UTF-8' action='/sendMessage' id='usrform' method='post' enctype='multipart/form-data'><label for='attachments'> Select a file to upload</label><input type='file' name='attachments' maxlength=50><input type='submit' class=' col-lg-4 text-right btn send-message-btn pull-right' role='button' value='Send Message'/></form></div></div></div>"
+    messageHistory = messageHistory + "</div><div class='send-wrap '><textarea name='message' id='message' form='usrform' class='form-control send-message' rows='3' placeholder='Write a reply...'></textarea></div><div class='btn-panel'><form accept-charset='UTF-8' action='/sendMessage' id='usrform' method='post' enctype='multipart/form-data'><input type='file' class=' col-lg-6 btn    send-message-btn' name='attachments' maxlength=50><input type='submit' class=' col-lg-4 text-right btn send-message-btn pull-right' role='button' value='Send Message'/></form></div></div></div>"
     messageHistory = unicode(messageHistory)
 
     if len(messageHistory) < 74 :
@@ -360,6 +360,8 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def receiveMessage(self, encoding=2):
+        if encoding != 2 or encoding != 0:
+            return (u'8: Encoding Standard Not Supported')
         data = cherrypy.request.json
         data = messageProcess.unprocess(data, listLoggedInUsers)
         if isinstance(data, basestring):
