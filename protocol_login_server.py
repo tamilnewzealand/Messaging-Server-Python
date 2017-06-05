@@ -160,7 +160,7 @@ class protocol_login_server():
                 peerList = [dict(tupleized) for tupleized in set(tuple(item.items()) for item in somelist)]
         except:
             pass
-    
+        
     def peerlist_thread(self):
         protocol_login_server.getList_API_call(self)
         thread.start_new_thread(protocol_login_server.peerlist_timer, (self, ))
@@ -170,6 +170,37 @@ class protocol_login_server():
         while True:
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
             protocol_login_server.getList_API_call(self)
+        
+    def getPeerStatus(self):
+        for peer in peerList:
+            if peer['ip'] == self.ip:
+                db.updateUserStatus(peer['username'], 'Online')
+                continue
+            elif peer['location'] == '2':
+                pass
+            elif peer['location'] == self.location:
+                pass
+            else:
+                continue
+            try:
+                payload = {'profile_username': peer['username']}
+                payload = json.dumps(payload)
+                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/getStatus', payload, {'Content-Type': 'application/json'})                  
+                data = json.loads(urllib2.urlopen(req).read())
+                db.updateUserStatus(peer['username'], data['status'])
+            except:
+                db.updateUserStatus(peer['username'], 'Offline')
+    
+    def peerstatus_thread(self):
+        protocol_login_server.getList_API_call(self)
+        thread.start_new_thread(protocol_login_server.peerstatus_timer, (self, ))
+
+    def peerstatus_timer(self):
+        starttime=time.time()
+        while True:
+            time.sleep(30.0 - ((time.time() - starttime) % 30.0))
+            protocol_login_server.getPeerStatus(self)
+    
 
     def profile_thread(self):
         thread.start_new_thread(protocol_login_server.profile_timer, (self, ))

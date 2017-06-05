@@ -9,7 +9,7 @@ def initTable(c) :
 	# Creating a table for message archive and accounts info storage
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
 	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
-	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING)")
+	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING, status STRING)")
 	data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
 	data = data.replace(",", "'), ('")
 	c.execute("INSERT INTO userprofiles (username) VALUES ('" + data + "')")
@@ -155,6 +155,14 @@ def updateUserProfileA(data):
 		closeDB(conn, c)
 	except :
 		pass
+	
+def updateUserStatus(username, currentstatus):
+	try :
+		(conn, c) = openDB()
+		c.execute("UPDATE userprofiles SET status='{a}' WHERE username='{b}'".format(a=currentstatus, b=username))
+		closeDB(conn, c)
+	except :
+		pass
 
 def updateUserProfileB(username, ip, location, lastLogin, port, publickey):
 	try :
@@ -169,7 +177,7 @@ def getPeerList():
 	userdata = ''
 	try :
 		c.execute("SELECT * FROM userprofiles")
-		userdata = [dict(zip(['username', 'ip', 'location', 'lastLogin', 'port', 'fullname', 'position', 'description', 'picture'], row)) for row in c.fetchall()]
+		userdata = [dict(zip(['username', 'ip', 'location', 'lastLogin', 'port', 'fullname', 'position', 'description', 'picture', 'publicKey', 'status'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)

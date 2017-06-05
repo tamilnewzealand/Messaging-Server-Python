@@ -35,14 +35,22 @@ def get_formated_peer_list():
         lastLogin = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
         if int(peer['lastLogin'] or 0) + 86400 > int(time.time()):
             lastLogin = time.strftime("%H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
+        elif peer['lastLogin'] == None:
+            lastLogin = 'NEVER'
         else:
             lastLogin = time.strftime("%a, %d %b %Y", time.localtime(float(peer['lastLogin'] or 0)))
-        if peer['lastLogin'] == None:
-            lastLogin = 'NEVER'
-        elif int(peer['lastLogin']) + 300 > int(time.time()):
+
+        if peer['status'] == "Online":
             name = name + u' 🔵'
-        else:
+        elif peer['status'] == "Idle":
+            name = name + u' 💁'
+        elif peer['status'] == "Away":
+            name = name + u' ⭕'
+        elif peer['status'] == 'Do Not Disturb':
             name = name + u' 🔴'
+        else:
+            name = name + u' ◯'
+
         pict = peer['picture']
         if peer['picture'] == None:
             pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
@@ -129,6 +137,13 @@ class MainClass(object):
         raise cherrypy.HTTPRedirect("/")
 
     @cherrypy.expose
+    def login(self):
+        if 'userdata' not in cherrypy.session:
+            return file("login.html")
+        else:
+            raise cherrypy.HTTPRedirect("home")
+
+    @cherrypy.expose
     def login_check(self, username, password):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
         cherrypy.session['userdata'] = protocol_login_server.protocol_login_server(username, hashed)
@@ -143,8 +158,9 @@ class MainClass(object):
                 protocol_login_server.protocol_login_server.peerlist_thread(cherrypy.session['userdata'])
                 protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
                 protocol_login_server.protocol_login_server.retrieve_messages_thread(cherrypy.session['userdata'])
+                protocol_login_server.protocol_login_server.peerstatus_thread(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
-        raise cherrypy.HTTPRedirect("login.html")
+        raise cherrypy.HTTPRedirect("login")
     
     @cherrypy.expose
     def tfa_check(self, seccode):
@@ -159,12 +175,12 @@ class MainClass(object):
                 protocol_login_server.protocol_login_server.profile_thread(cherrypy.session['userdata'])
                 protocol_login_server.protocol_login_server.peerlist_thread(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
-        raise cherrypy.HTTPRedirect("login.html")
+        raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def home(self):
         if 'userdata' not in cherrypy.session:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             cherrypy.session['userdata'].currentChat = ''
             sidebar = get_formated_peer_list()
@@ -181,12 +197,12 @@ class MainClass(object):
             statusStuff = statusStuff + "</select></form>"
             return header + sidebar + statusStuff + footer
         else:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def editProfile(self):
         if 'userdata' not in cherrypy.session:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             head = ''
             foot = ''
@@ -208,7 +224,7 @@ class MainClass(object):
                 sidebar = sidebar + "<div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa'><label for='tfa'>Two Factor Authentication</label></div>"
             return head + sidebar.encode("ascii") + foot
         else:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def updateProfile(self, picture, description, location, position, fullname, tfa):
@@ -225,7 +241,7 @@ class MainClass(object):
     @cherrypy.expose
     def chat(self, userID):
         if 'userdata' not in cherrypy.session:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             userID = userID.replace("\'", "")
             cherrypy.session['userdata'].currentChat = userID
@@ -243,12 +259,12 @@ class MainClass(object):
             statusStuff = statusStuff + "</select></form>"
             return header + sidebar + messageHistory + statusStuff + footer
         else:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def updateStatus(self, newStatus):
         if 'userdata' not in cherrypy.session:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             global listLoggedInUsers
             for user in listLoggedInUsers:
@@ -259,12 +275,12 @@ class MainClass(object):
             else:
                 raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def sendMessage(self, message, attachments):
         if 'userdata' not in cherrypy.session:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             data = {'sender': unicode(cherrypy.session['userdata'].username), 'destination': unicode(cherrypy.session['userdata'].currentChat), 'message': unicode(message), 'markdown': '1', 'stamp': unicode(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
             files = False
@@ -290,7 +306,7 @@ class MainClass(object):
                 pass
             if not files:
                 db.addNewMessage(data)
-            offline = True
+            offline = False
             for peer in protocol_login_server.peerList:
                 if cherrypy.session['userdata'].currentChat == peer['username']:
                     sentMessage = data
@@ -355,7 +371,7 @@ class MainClass(object):
                         db.addNewMessage(data)
             raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:
-            raise cherrypy.HTTPRedirect("login.html")
+            raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
     def error_page_404(status, message, traceback, version):
@@ -479,6 +495,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_in()
     def receiveFile(self):
         if access_control.access_control():
+            data = cherrypy.request.json
             data = messageProcess.unprocess(data, listLoggedInUsers)
             if isinstance(data, basestring):
                 return data
