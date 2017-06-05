@@ -392,7 +392,10 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     def receiveMessage(self, encoding=2):
         if access_control.access_control():
             data = cherrypy.request.json
-            data = messageProcess.unprocess(data, listLoggedInUsers)
+            try:
+                data = messageProcess.unprocess(data, listLoggedInUsers)
+            except:
+                return ('1: Missing Compulsory Field')
             if isinstance(data, basestring):
                 return data
             
@@ -429,6 +432,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             for user in listLoggedInUsers:
                 if user['username'] == sender['profile_username']:
                     return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'pubkey': user['pubkey']}
+            return ('1: Missing Compulsory Field')
         else:
             return ("403: Forbidden error")
 
@@ -460,11 +464,14 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     @cherrypy.tools.json_out()
     def getProfile(self):
         if access_control.access_control():
-            sender = cherrypy.request.json
-            data = db.getUserData(sender['profile_username'])
-            data[0]['encoding'] = 2
-            data[0]['encryption'] = 0
-            return data[0]  
+            try:
+                sender = cherrypy.request.json
+                data = db.getUserData(sender['profile_username'])
+                data[0]['encoding'] = 2
+                data[0]['encryption'] = 0
+                return data[0]
+            except:
+                return('1: Missing Compulsory Field')
         else:
             return ("403: Forbidden error")
     
@@ -492,7 +499,10 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             for user in listLoggedInUsers:
                 if user['username'] == payload['destination']:
                     payload['status'] = 'DELIVERED'
-            db.addNewMessage(payload)
+            try:
+                db.addNewMessage(payload)
+            except:
+                return('1: Missing Compulsory Field')
             return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return ("403: Forbidden error")
@@ -543,6 +553,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             for user in listLoggedInUsers:
                 if user['username'] == data['profile_username']:
                     return {'status', user['status']}
+            return ('1: Missing Compulsory Field')
         else:
             return ("403: Forbidden error")
 
