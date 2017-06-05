@@ -76,7 +76,7 @@ def updateMessageStatus(data, newStatus):
 	if stuff == []:
 		closeDB(conn, c)
 		return False
-	c.execute("UPDATE messages SET status='{e}' WHERE sender='{a}' AND hashing='{b}' AND hash='{c}' AND stamp='{d}'".format(a=data['sender'], b=data['hashing'], c=data['hash'], d=data['stamp']), e=newStatus)
+	c.execute("UPDATE messages SET status='{a}' WHERE sender='{b}' AND hashing='{c}' AND hash='{d}' AND stamp='{e}'".format(a=newStatus, b=data['sender'], c=data['hashing'], d=data['hash'], e=data['stamp']))
 	closeDB(conn, c)
 	return True
 

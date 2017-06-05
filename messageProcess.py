@@ -56,7 +56,7 @@ def unprocess(data, listLoggedInUsers):
         data['hash'] = ''
     
     text = ''
-    salt = bin(int(binascii.hexlify(data['sender']),16))
+    salt = data['sender'].encode('ascii')
     if 'message' in data:
         data['message'] = bleach.clean(data['message'])
         text = data['message'].encode('utf-8')
@@ -120,7 +120,7 @@ def process(data, peer):
         data['hashing'] = '4'
 
     text = ''
-    salt = bin(int(binascii.hexlify(data['sender']),16))
+    salt = data['sender'].encode('ascii')
     if 'message' in data:
         data['message'] = data['message'].encode('utf-8')
         text = data['message']
