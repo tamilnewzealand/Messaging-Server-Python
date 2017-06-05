@@ -38,12 +38,12 @@ class XORCipher():
     @staticmethod
     def decrypt(text):
         key = XOR.new('01101001')
-        return key.decrypt(text)
+        return key.decrypt(binascii.unhexlify(text))
 
     @staticmethod
     def encrypt(text):
         key = XOR.new('01101001')
-        return key.encrypt(text)
+        return binascii.hexlify(key.encrypt(text))
     
 class RSA1024Cipher():
     @staticmethod

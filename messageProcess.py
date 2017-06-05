@@ -49,15 +49,19 @@ def unprocess(data, listLoggedInUsers):
         data['encoding'] = 2
     if 'markdown' not in data:
         data['markdown'] = 0
-    data['message'] = bleach.clean(data['message'])
 
     if 'hashing' not in data:
         data['hashing'] = 0
     if 'hash' not in data:
         data['hash'] = ''
     
-    text = data['message'].encode('utf-8')
+    text = ''
     salt = bin(int(binascii.hexlify(data['sender']),16))
+    if 'message' in data:
+        data['message'] = bleach.clean(data['message'])
+        text = data['message'].encode('utf-8')
+    if 'file' in data:
+        text = data['file']
 
     if int(data['hashing']) == 0:
         return data
@@ -115,25 +119,30 @@ def process(data, peer):
     if '4' in supported[-1]:
         data['hashing'] = '4'
 
-    data['message'] = data['message'].encode('utf-8')
+    text = ''
     salt = bin(int(binascii.hexlify(data['sender']),16))
+    if 'message' in data:
+        data['message'] = data['message'].encode('utf-8')
+        text = data['message']
+    if 'file' in data:
+        text = data['file']
 
     if data['hashing'] == '1':
-        data['hash'] = SHA256.new(data['message']).hexdigest()
+        data['hash'] = SHA256.new(text).hexdigest()
     if data['hashing'] == '2':
-        data['hash'] = SHA256.new(data['message'] + salt).hexdigest()
+        data['hash'] = SHA256.new(text + salt).hexdigest()
     if data['hashing'] == '3':
-        data['hash'] = SHA512.new(data['message']).hexdigest()
+        data['hash'] = SHA512.new(text).hexdigest()
     if data['hashing'] == '4':
-        data['hash'] = SHA512.new(data['message'] + salt).hexdigest()
+        data['hash'] = SHA512.new(text + salt).hexdigest()
     if data['hashing'] == '5':
-        data['hash'] = bcrypt.hash(data['message'])
+        data['hash'] = bcrypt.hash(text)
     if data['hashing'] == '6':
-        data['hash'] = bcrypt.hash(data['message'] + salt)
+        data['hash'] = bcrypt.hash(text + salt)
     if data['hashing'] == '7':
-        data['hash'] = scrypt.hash(data['message'])
+        data['hash'] = scrypt.hash(text)
     if data['hashing'] == '8':
-        data['hash'] = scrypt.hash(data['message'] + salt)
+        data['hash'] = scrypt.hash(text + salt)
     
     if '1' in supported[-2]:
         data['encryption'] = '1'
