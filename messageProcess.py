@@ -45,8 +45,6 @@ def unprocess(data, listLoggedInUsers):
         data['stamp'] = int(time.time())
     if int(data['stamp']) + 31536000 < int(time.time()):
         data['stamp'] = int(time.time())
-    if 'encoding' not in data:
-        data['encoding'] = 2
     if 'markdown' not in data:
         data['markdown'] = 0
 
@@ -93,7 +91,7 @@ def unprocess(data, listLoggedInUsers):
     return str('7: Hash does not match')
 
 def process(data, peer):
-    supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncoding: 0, 2\nEncryption: 0\nHashing: 0"""
+    supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'

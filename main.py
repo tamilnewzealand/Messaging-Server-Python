@@ -347,7 +347,7 @@ class MainClass(object):
                         continue
                     if data['message'] != "":
                         try:
-                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                             response = urllib2.urlopen(req).read()
                             if '0: ' in response:
                                 db.updateMessageStatus(data, 'IN TRANSIT')
@@ -376,7 +376,7 @@ class MainClass(object):
             return ("""Available APIs: 
 /listAPI 
 /ping 
-/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encoding(opt)] [encryption(opt)] [hashing(opt)] [hash(opt)]
+/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]
 /acknowledge [sender] [stamp] [hash] [hashing]
 /getPublicKey [sender]
 /handshake [message] [encryption]
@@ -386,7 +386,6 @@ class MainClass(object):
 /getStatus [profile_username]
 /getList [username] [encryption] [json]
 /report [username] [passphrase] [signature] [location] [ip] [port] [encryption(opt)]
-Encoding: 0, 2
 Encryption: 0, 1, 2, 3, 4
 Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
         else:
@@ -398,7 +397,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
     
     @cherrypy.expose
     @cherrypy.tools.json_in()
-    def receiveMessage(self, encoding=2):
+    def receiveMessage(self):
         if access_control.access_control():
             data = cherrypy.request.json
             try:
@@ -476,7 +475,6 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             try:
                 sender = cherrypy.request.json
                 data = db.getUserData(sender['profile_username'])
-                data[0]['encoding'] = 2
                 data[0]['encryption'] = 0
                 return data[0]
             except:
@@ -505,7 +503,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                 text = '<audio controls><source src="' + os.path.join('downloads', data['filename']) + '\" type=\"' + content_type + '\"></audio>'
             if 'video/' in content_type:
                 text = '<video width="320" height="240" controls><source src="'  + os.path.join('downloads', data['filename']) + '\" type=\"' + content_type + '\"></video>'
-            payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encoding': 2, 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'IN TRANSIT', 'markdown': 0}
+            payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text, 'stamp': data['stamp'], 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'IN TRANSIT', 'markdown': 0}
             for user in listLoggedInUsers:
                 if user['username'] == payload['destination']:
                     payload['status'] = 'DELIVERED'
@@ -545,7 +543,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                             data = messageProcess.process(data, peer)
                             payload = json.dumps(data)
                             try:
-                                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                                 response = urllib2.urlopen(req).read()
                                 db.updateMessageStatus(message, 'DELIVERED')
                             except:

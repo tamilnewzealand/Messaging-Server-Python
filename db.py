@@ -7,7 +7,7 @@ import string
 
 def initTable(c) :
 	# Creating a table for message archive and accounts info storage
-	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encoding STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
+	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
 	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING, status STRING)")
 	data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
@@ -34,13 +34,12 @@ def addNewMessage(data):
 	(conn, c) = openDB()
 	c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' AND stamp='{d}'".format(a=data['sender'], b=data['destination'], d=data['stamp']))
 	stuff = c.fetchall()
-	data['encoding'] = '2'
 	if 'status' not in data:
 		data['status'] = 'OUTBOX'
 	#data['message'] = string.replace(data['message'], "'", "''")
 	if stuff == []:
 		try:
-			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encoding, :encryption, :hashing, :hash, :status, :markdown)", data)
+			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encryption, :hashing, :hash, :status, :markdown)", data)
 			closeDB(conn, c)
 			return True
 		except:
@@ -52,7 +51,7 @@ def readOutMessages(messageUser, myUserID):
 	messageList = ''
 	try :
 		c.execute("SELECT * FROM messages WHERE sender='{a}' AND destination='{b}' OR sender='{b}' AND destination='{a}'".format(a=messageUser, b=myUserID))
-		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encoding', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
+		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)
@@ -63,7 +62,7 @@ def getTransitingMessages(messageUser):
 	messageList = ''
 	try :
 		c.execute("SELECT * FROM messages WHERE destination='{a}' AND status='IN TRANSIT'".format(a=messageUser))
-		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encoding', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
+		messageList = [dict(zip(['sender', 'destination', 'message', 'stamp', 'encryption', 'hashing', 'hash', 'status', 'markdown'], row)) for row in c.fetchall()]
 	except :
 		pass
 	closeDB(conn, c)
