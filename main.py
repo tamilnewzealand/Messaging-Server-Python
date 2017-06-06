@@ -19,43 +19,8 @@ import Ciphers
 from Crypto.Hash import SHA512
 from cherrypy.lib.static import serve_fileobj
 
-header = ''
-footer = "</div><link rel='stylesheet' href='simplemde.min.css'><script src='simplemde.min.js'></script><script>new SimpleMDE({ element: document.getElementById('message'), spellChecker: false, });</script></body></html>"
-with open ("chat_header.html", "r") as myfile : 
-    header = myfile.read()
 listLoggedInUsers = []
 thread.start_new_thread(access_control.ac_timer, ('0', ))
-
-def get_formated_peer_list():
-    sidebar = ''
-    for peer in db.getPeerList() :
-        name = peer['username']
-        if peer['fullname'] != None:
-            name = peer['fullname']
-        lastLogin = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
-        if int(peer['lastLogin'] or 0) + 86400 > int(time.time()):
-            lastLogin = time.strftime("%H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
-        elif peer['lastLogin'] == None:
-            lastLogin = 'NEVER'
-        else:
-            lastLogin = time.strftime("%a, %d %b %Y", time.localtime(float(peer['lastLogin'] or 0)))
-
-        if peer['status'] == "Online":
-            name = name + u' 🔵'
-        elif peer['status'] == "Idle":
-            name = name + u' 💁'
-        elif peer['status'] == "Away":
-            name = name + u' ⭕'
-        elif peer['status'] == 'Do Not Disturb':
-            name = name + u' 🔴'
-        else:
-            name = name + u' ◯'
-
-        pict = peer['picture']
-        if peer['picture'] == None:
-            pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
-        sidebar = sidebar + """<div class="media conversation"><a class="pull-left" href="chat?userID='""" + peer['username'] + "\'" + """"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 50px; height: 50px;" src=\"""" + pict + """"></a><div class="media-body"><h5 class="media-heading">""" + name + ' </h5><small>Last Online: ' + lastLogin + '</small></div></div>'
-    return unicode(sidebar)
 
 def sizeb64(b64string):
     return (len(b64string) * 3) / 4 - b64string.count('=', -2)
@@ -81,40 +46,6 @@ def sendAcknowledge(data, ip):
     except:
         pass
 
-def get_formated_message_list(userID):
-    messageHistory = """</div><div class="message-wrap col-lg-8"><div class="msg-wrap" id="your_div">"""
-    messageList = db.readOutMessages(userID, cherrypy.session['userdata'].username)
-    contact = db.getUserProfile(userID)[0]
-    userdata = db.getUserProfile(cherrypy.session['userdata'].username)[0]
-    for row in messageList :
-        if row['status'] != 'SEEN':
-            if row['sender'] == userID:
-                sendAcknowledge(row, cherrypy.session['userdata'].ip)
-        name = userdata['fullname']
-        pict = userdata['picture']
-        row['message'] = string.replace(row['message'], "''", "'")
-        if int(row['markdown']) == 1:
-            text = markdown.markdown(row['message'])
-        else:
-            text = row['message']
-        if row['sender'] == userdata['username'] :
-            pass
-        else :
-            name = contact['username']
-            if contact['fullname'] != None:
-                name = contact['fullname']
-            pict = contact['picture']
-            if contact['picture'] == None:
-                pict = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
-        messageHistory = messageHistory + """<div class="media msg"><a class="pull-left" href="#"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src=\"""" + pict + """"></a><div class="media-body"><small class="pull-right time"><i class="fa fa-clock-o"></i>""" + time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp']))) + "<br>" + row['status'] + """</small><h5 class="media-heading">""" + name + """</h5><small class="col-lg-10">""" + text + '</small></div></div>'
-    messageHistory = messageHistory + "</div><div class='send-wrap '><textarea name='message' id='message' form='usrform' class='form-control send-message' rows='3' placeholder='Write a reply...'></textarea></div><div class='btn-panel'><form accept-charset='UTF-8' action='/sendMessage' id='usrform' method='post' enctype='multipart/form-data'><input type='file' class=' col-lg-6 btn    send-message-btn' name='attachments' maxlength=50><input type='submit' class=' col-lg-4 text-right btn send-message-btn pull-right' role='button' value='Send Message'/></form></div></div></div>"
-    messageHistory = unicode(messageHistory)
-
-    if len(messageHistory) < 74 :
-        messageHistory = messageHistory + "You have no chat history with this user, start chatting below ..."
-    
-    return messageHistory
-
 def stop():
     if cherrypy.session['userdata'] != None:
         protocol_login_server.protocol_login_server.logoff_API_call(cherrypy.session['userdata'])
@@ -138,10 +69,79 @@ class MainClass(object):
 
     @cherrypy.expose
     def login(self):
+        if 'userdata' in cherrypy.session:
+            cherrypy.session['userdata'] = None
+            return file("login.html")
         if 'userdata' not in cherrypy.session:
             return file("login.html")
         else:
             raise cherrypy.HTTPRedirect("home")
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getPeerListJSON(self):
+        somelist = db.getPeerList()
+        for peer in somelist:
+            if peer['fullname'] == None:
+                peer['fullname'] = peer['username']
+                
+            lastLogin = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
+            if int(peer['lastLogin'] or 0) + 86400 > int(time.time()):
+                peer['lastLogin'] = time.strftime("%H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
+            elif peer['lastLogin'] == None:
+                peer['lastLogin'] = 'NEVER'
+            else:
+                peer['lastLogin'] = time.strftime("%a, %d %b %Y", time.localtime(float(peer['lastLogin'] or 0)))
+
+            if peer['status'] == "Online":
+                peer['fullname'] = peer['fullname'] + u' 🔵'
+            elif peer['status'] == "Idle":
+                peer['fullname'] = peer['fullname'] + u' 💁'
+            elif peer['status'] == "Away":
+                peer['fullname'] = peer['fullname'] + u' ⭕'
+            elif peer['status'] == 'Do Not Disturb':
+                peer['fullname'] = peer['fullname'] + u' 🔴'
+            else:
+                peer['fullname'] = peer['fullname'] + u' ◯'
+
+            if peer['picture'] == None:
+                peer['picture'] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
+        peerlist = {str(k): v for k, v in enumerate(somelist)}
+        return peerlist
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getMessageListJSON(self):
+        userID = cherrypy.serving.request.headers['Referer']
+        userID = userID.split('%27')[1]
+        messageList = db.readOutMessages(userID, cherrypy.session['userdata'].username)
+        contact = db.getUserProfile(userID)[0]
+        userdata = db.getUserProfile(cherrypy.session['userdata'].username)[0]
+        for row in messageList :
+            if row['status'] != 'SEEN':
+                if row['sender'] == userID:
+                    sendAcknowledge(row, cherrypy.session['userdata'].ip)
+            row['stamp'] = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp'])))
+            row['fullname'] = userdata['fullname']
+            row['picture'] = userdata['picture']
+            row['message'] = string.replace(row['message'], "''", "'")
+            if int(row['markdown']) == 1:
+                row['message'] = markdown.markdown(row['message'])
+            row['username'] = contact['username']
+            if row['sender'] == userdata['username'] :
+                pass
+            else :
+                if contact['fullname'] != None:
+                    row['fullname'] = contact['fullname']
+                else:
+                    row['fullname'] = contact['username']
+
+                if contact['picture'] == None:
+                    row['picture'] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACqUlEQVR4Xu2Y60tiURTFl48STFJMwkQjUTDtixq+Av93P6iBJFTgg1JL8QWBGT4QfDX7gDIyNE3nEBO6D0Rh9+5z9rprr19dTa/XW2KHl4YFYAfwCHAG7HAGgkOQKcAUYAowBZgCO6wAY5AxyBhkDDIGdxgC/M8QY5AxyBhkDDIGGYM7rIAyBgeDAYrFIkajEYxGIwKBAA4PDzckpd+322243W54PJ5P5f6Omh9tqiTAfD5HNpuFVqvFyckJms0m9vf3EY/H1/u9vb0hn89jsVj8kwDfUfNviisJ8PLygru7O4TDYVgsFtDh9Xo9NBrNes9cLgeTybThgKenJ1SrVXGf1WoVDup2u4jFYhiPx1I1P7XVBxcoCVCr1UBfTqcTrVYLe3t7OD8/x/HxsdiOPqNGo9Eo0un02gHkBhJmuVzC7/fj5uYGXq8XZ2dnop5Mzf8iwMPDAxqNBmw2GxwOBx4fHzGdTpFMJkVzNB7UGAmSSqU2RoDmnETQ6XQiOyKRiHCOSk0ZEZQcUKlU8Pz8LA5vNptRr9eFCJQBFHq//szG5eWlGA1ywOnpqQhBapoWPfl+vw+fzweXyyU+U635VRGUBOh0OigUCggGg8IFK/teXV3h/v4ew+Hwj/OQU4gUq/w4ODgQrkkkEmKEVGp+tXm6XkkAOngmk4HBYBAjQA6gEKRmyOL05GnR99vbW9jtdjEGdP319bUIR8oA+pnG5OLiQoghU5OElFlKAtCGr6+vKJfLmEwm64aosd/XbDbbyIBSqSSeNKU+HXzlnFAohKOjI6maMs0rO0B20590n7IDflIzMmdhAfiNEL8R4jdC/EZIJj235R6mAFOAKcAUYApsS6LL9MEUYAowBZgCTAGZ9NyWe5gCTAGmAFOAKbAtiS7TB1Ng1ynwDkxRe58vH3FfAAAAAElFTkSuQmCC"
+                else:
+                    row['picuture'] = contact['picture']
+        somelist = {str(k): v for k, v in enumerate(messageList)}
+        return somelist
 
     @cherrypy.expose
     def login_check(self, username, password):
@@ -183,20 +183,9 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             cherrypy.session['userdata'].currentChat = ''
-            sidebar = get_formated_peer_list()
-            sidebar = sidebar + "</div><div class='intro-screen-wrap col-lg-8'><table style='height: 400px;'><tbody><tr><td class='align-middle'><h2><center>Click on an active users name on the left to start chatting.</center></h2></td></tr></tbody></table></div></div>"
-            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
-            statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
-            for user in listLoggedInUsers:
-                if user['username'] == cherrypy.session['userdata'].username:
-                    for typ in statusTypes:
-                        if typ == user['status']:
-                            statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
-                        else:
-                            statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
-            statusStuff = statusStuff + "</select></form>"
-            return header + sidebar + statusStuff + footer
+            return file("home.html")
         else:
+            cherrypy.session['userdata'] = None
             raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
@@ -239,25 +228,28 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getHTMLStatus(self):
+        statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
+        statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
+        for user in listLoggedInUsers:
+            if user['username'] == cherrypy.session['userdata'].username:
+                for typ in statusTypes:
+                    if typ == user['status']:
+                        statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
+                    else:
+                        statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
+        statusStuff = statusStuff + "</select></form>"
+        return {'data': statusStuff}
+
+    @cherrypy.expose
     def chat(self, userID):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
             userID = userID.replace("\'", "")
             cherrypy.session['userdata'].currentChat = userID
-            sidebar = get_formated_peer_list()
-            messageHistory = unicode(get_formated_message_list(userID))
-            statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
-            statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
-            for user in listLoggedInUsers:
-                if user['username'] == cherrypy.session['userdata'].username:
-                    for typ in statusTypes:
-                        if typ == user['status']:
-                            statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
-                        else:
-                            statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
-            statusStuff = statusStuff + "</select></form>"
-            return header + sidebar + messageHistory + statusStuff + footer
+            return file("chat.html")
         else:
             raise cherrypy.HTTPRedirect("login")
 
@@ -322,11 +314,11 @@ class MainClass(object):
                         try:
                             data = messageProcess.process(data, peer)
                             payload = json.dumps(data)
-                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage?encoding=2', payload, {'Content-Type': 'application/json'})
+                            req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                             response = urllib2.urlopen(req).read()
                             if '0: ' in response:
                                 db.updateMessageStatus(sentMessage, 'DELIVERED')
-                            offline = False
+                                raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                         except:
                             pass
                     if files:
@@ -335,11 +327,12 @@ class MainClass(object):
                         try:
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                             response = urllib2.urlopen(req).read()
+                            sentMessage['message'] = sentMessage['message'] + text
+                            sentMessage['status'] = 'SENT'
+                            db.addNewMessage(sentMessage)
+                            raise cherrypy.HTTPRedirect("chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
                         except:
                             pass
-                        sentMessage['message'] = sentMessage['message'] + text
-                        sentMessage['status'] = 'SENT'
-                        db.addNewMessage(sentMessage)
             if offline:
                 payload = json.dumps(data)
                 payloads = json.dumps(stuff)
@@ -400,7 +393,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             return ("403: Forbidden error")
         
     @cherrypy.expose
-    def ping(self):
+    def ping(self, sender):
         return ('0')
     
     @cherrypy.expose
@@ -539,7 +532,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                     file.close()
                     for peer in protocol_login_server.peerList:
                         if message['destination'] == peer['username']:
-                            stuff = {'sender': message['sender'], 'destination': message['desination'], 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': message['stamp'], 'encryption': 0, 'hash': '', 'hashing': 0}
+                            stuff = {'sender': message['sender'], 'destination': message['destination'], 'file': attachments, 'content_type': content_type,'filename': filname, 'stamp': message['stamp'], 'encryption': 0, 'hash': '', 'hashing': 0}
                             data = messageProcess.process(stuff, peer)
                             payload = json.dumps(data)
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
@@ -569,7 +562,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             data = cherrypy.request.json
             for user in listLoggedInUsers:
                 if user['username'] == data['profile_username']:
-                    return {'status', user['status']}
+                    return {'status': user['status']}
             return ('1: Missing Compulsory Field')
         else:
             return ("403: Forbidden error")

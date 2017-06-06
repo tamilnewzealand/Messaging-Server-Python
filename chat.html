@@ -168,8 +168,28 @@
     }
 
     </style>
-    <script src="jquery-1.11.1.min.js"></script>
     <script src="bootstrap.min.js"></script>
+    <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="handlebars-v4.0.10.js"></script>
+    <script>
+$(function  () {
+	$.getJSON('http://localhost:10008/getPeerListJSON', function(data) {
+		var theTemplateScript = $("#peerlist-template").html();
+		var theTemplate = Handlebars.compile (theTemplateScript);
+		$(".conversation-wrap").append (theTemplate(data)); 
+	});
+    $.getJSON('http://localhost:10008/getMessageListJSON', function(data) {
+		var theTemplateScript = $("#messagelist-template").html();
+		var theTemplate = Handlebars.compile (theTemplateScript);
+		$(".msg-wrap").append (theTemplate(data)); 
+	});
+    $.getJSON('http://localhost:10008/getHTMLStatus', function(data) {
+		var theTemplateScript = $("#htmlstatus-template").html();
+		var theTemplate = Handlebars.compile (theTemplateScript);
+		$(".htmlstatus").append (theTemplate(data)); 
+	});
+});
+     </script>
 </head>
 <body>
         <link href="css/font-awesome.css" rel="stylesheet">
@@ -192,3 +212,58 @@
     <div class="row">
 
         <div class="conversation-wrap col-lg-3">
+            <script id="peerlist-template" type="x-handlebars-template">
+                {{#each this}}
+                <div class="media conversation">
+                    <a class="pull-left" href="chat?userID='{{username}}'">
+                    <img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 50px; height: 50px;" src="{{picture}}"></a>
+                    <div class="media-body">
+                        <h5 class="media-heading">{{fullname}}</h5>
+                        <small>Last Online: {{lastLogin}}</small>
+                    </div>
+                </div>
+                {{/each}}
+	        </script>
+
+        </div>
+        
+        <div class="message-wrap col-lg-8">
+            <div class="msg-wrap" id="your_div">
+                <script id="messagelist-template" type="x-handlebars-template">
+                    {{#each this}}
+                    <div class="media msg">
+                        <a class="pull-left" href="chat?userID='{{username}}'"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src="{{picture}}"></a>
+                        <div class="media-body">
+                            <small class="pull-right time">
+                            <i class="fa fa-clock-o"></i>{{stamp}}<br>{{status}}</small>
+                            <h5 class="media-heading">{{fullname}}</h5>
+                            <small class="col-lg-10">{{{message}}}</small>
+                        </div>
+                    </div>
+                    {{/each}}
+                </script>
+                
+            </div>
+            <div class='send-wrap '>
+                <textarea name='message' id='message' form='usrform' class='form-control send-message' rows='3' placeholder='Write a reply...'></textarea>
+            </div>
+            <div class='btn-panel'>
+                <form accept-charset='UTF-8' action='/sendMessage' id='usrform' method='post' enctype='multipart/form-data'>
+                    <input type='file' class=' col-lg-6 btn    send-message-btn' name='attachments' maxlength=50>
+                    <input type='submit' class=' col-lg-4 text-right btn send-message-btn pull-right' role='button' value='Send Message'/>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class='htmlstatus'>
+        <script id="htmlstatus-template" type="x-handlebars-template">
+            {{{data}}}
+        </script>
+    </div>
+</div>
+<link rel='stylesheet' href='simplemde.min.css'>
+<script src='simplemde.min.js'></script>
+<script>new SimpleMDE({ element: document.getElementById('message'), spellChecker: false, });</script>
+</body>
+</html>
