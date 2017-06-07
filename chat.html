@@ -231,7 +231,7 @@ $(function  () {
             <div class="msg-wrap" id="your_div">
                 <script id="messagelist-template" type="x-handlebars-template">
                     {{#each this}}
-                    <div class="media msg">
+                    <div class="media msg" id="marksdiv">
                         <a class="pull-left" href="chat?userID='{{username}}'"><img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 32px; height: 32px;" src="{{picture}}"></a>
                         <div class="media-body">
                             <small class="pull-right time">
@@ -265,5 +265,15 @@ $(function  () {
 <link rel='stylesheet' href='simplemde.min.css'>
 <script src='simplemde.min.js'></script>
 <script>new SimpleMDE({ element: document.getElementById('message'), spellChecker: false, });</script>
+<script>
+    var messages = getElementById('marksdiv');
+    function scrollToBottom() {
+	    messages.scrollTop = messages.scrollHeight;
+    }
+    var shouldScroll = messages.scrollTop + messages.clientHeight === messages.scrollHeight;
+    if (shouldScroll) {
+        scrollToBottom();
+    }
+    </script>
 </body>
 </html>

@@ -36,7 +36,6 @@ def addNewMessage(data):
 	stuff = c.fetchall()
 	if 'status' not in data:
 		data['status'] = 'OUTBOX'
-	#data['message'] = string.replace(data['message'], "'", "''")
 	if stuff == []:
 		try:
 			c.execute("INSERT INTO messages VALUES (:sender, :destination, :message, :stamp, :encryption, :hashing, :hash, :status, :markdown)", data)

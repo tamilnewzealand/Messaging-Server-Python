@@ -95,8 +95,10 @@ def process(data, peer):
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
-        supported = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
-        supported = supported.split("\n")
+        respdata = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+        if 'crypt' in respdata:
+            if 'ash' in respdata:
+                supported = respdata.split("\n")
     except:
         pass
     
