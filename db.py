@@ -10,7 +10,7 @@ def initTable(c):
     # Creating a table for message archive and accounts info storage
     c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
     c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
-    c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING, status STRING)")
+    c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, picture STRING, publicKey STRING, status STRING)")
     c.execute("CREATE TABLE events (sender STRING, destination STRING, event_name STRING, event_description STRING, event_location STRING, event_picture STRING, start_time STRING, end_time STRING, markdown STRING, encryption STRING, status STRING)")
     data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
     data = data.replace(",", "'), ('")

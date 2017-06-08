@@ -204,7 +204,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                         if message['destination'] == peer['username']:
                             stuff = {'sender': message['sender'], 'destination': message['destination'], 'file': attachments,
                                      'content_type': content_type, 'filename': filname, 'stamp': message['stamp'], 'encryption': 0, 'hash': '', 'hashing': 0}
-                            payload = json.dumps(data)
+                            payload = json.dumps(stuff)
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                 peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
                             response = urllib2.urlopen(req).read()

@@ -10,9 +10,11 @@ import cherrypy
 import access_control
 import os
 
+# Starts a thread which keeps count of how many connections
+# are coming from various IPs for rate limiting.
 thread.start_new_thread(access_control.ac_timer, ('0', ))
 
-
+# Called when closing down node, calls logoff on every logged in node.
 def stop():
     if cherrypy.session['userdata'] is not None:
         logserv.logserv.logoff_API_call(cherrypy.session['userdata'])
