@@ -490,6 +490,32 @@ class MainClass(object):
         return file("404.html")
 
     @cherrypy.expose
+    def makeHandshake(self, destination):
+        text = protocol_login_server.randomword(512)
+        data = {'message': text, 'sender': cherrypy.session['userdata'].username, 'destination': destination, 'markdown': '1', 'stamp': str(int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
+        for peer in protocol_login_server.peerList:
+            if peer['username'] == destination:
+                data = messageProcess.process(data, peer)
+                if destination == cherrypy.session['userdata'].username:
+                    peer['ip'] = 'localhost'
+                elif peer['location'] == '2':
+                    pass
+                elif peer['location'] == cherrypy.session['userdata'].location:
+                    pass
+                else:
+                    raise cherrypy.HTTPRedirect("home")
+                try:
+                    payload = json.dumps(data)
+                    req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/handshake', payload, {'Content-Type': 'application/json'})
+                    response = urllib2.urlopen(req).read()
+                    response = json.loads(response)
+                    if response['message'] == text:
+                        return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
+                except:
+                    return ('7: Hash does not match')
+        return ('2: Unauthenticated User')
+
+    @cherrypy.expose
     def listAPI(self):
         if access_control.access_control():
             return ("""Available APIs: 
