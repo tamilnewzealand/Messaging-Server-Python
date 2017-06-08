@@ -178,14 +178,11 @@ class MainClass(object):
         if final['sender'] == cherrypy.session['userdata'].username:
             final['responses'] = orig
         else:
-            statusStuff = "</br><form action='/updateEventStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
-            statusTypes = ['Going', 'Maybe', 'Not Going']
+            final['dropdown'] = 'true'
+            statusTypes = {'x': 'Going', 'y': 'Maybe', 'z': 'Not Going'}
             for typ in statusTypes:
-                if typ == orig[0]['status']:
-                    statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
-                else:
-                    statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
-            final['dropdown'] = statusStuff + "</select></form>"
+                if statusTypes[typ] == orig[0]['status']:
+                    final[typ] = 'true'
         return final
     
     @cherrypy.expose
@@ -339,17 +336,12 @@ class MainClass(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getHTMLStatus(self):
-        statusStuff = "</br><form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'><select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>"
-        statusTypes = ['Online', 'Idle', 'Do Not Disturb', 'Away', 'Offline']
+        statusTypes = {'a': 'Online', 'b': 'Idle', 'c': 'Do Not Disturb', 'd': 'Away', 'e': 'Offline'}
         for user in protocol_login_server.listLoggedInUsers:
             if user['username'] == cherrypy.session['userdata'].username:
                 for typ in statusTypes:
-                    if typ == user['status']:
-                        statusStuff = statusStuff + "<option selected value='" + typ + "'>" + typ + "</option>"
-                    else:
-                        statusStuff = statusStuff + "<option value='" + typ + "'>" + typ + "</option>"
-        statusStuff = statusStuff + "</select></form>"
-        return {'data': statusStuff}
+                    if statusTypes[typ] == user['status']:
+                        return {typ: 'true'}
 
     @cherrypy.expose
     def chat(self, userID):

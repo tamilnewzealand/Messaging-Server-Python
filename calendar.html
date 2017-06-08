@@ -234,9 +234,38 @@ $(function  () {
             </table>
         </div>
     </div>
+    </br>
     <div class='htmlstatus'>
         <script id="htmlstatus-template" type="x-handlebars-template">
-            {{{data}}}
+            <form action='/updateStatus' id='usrstatus' method='post' enctype='multipart/form-data'>
+                <select name='newStatus' onchange='if(this.value != 0) { this.form.submit(); }'>
+                    {{#if a}}
+                    <option selected value='Online'>Online</option>
+                    {{else}}
+                    <option value='Online'>Online</option>
+                    {{/if}}
+                    {{#if b}}
+                    <option selected value='Idle'>Idle</option>
+                    {{else}}
+                    <option value='Idle'>Idle</option>
+                    {{/if}}
+                    {{#if c}}
+                    <option selected value='Do Not Disturb'>Do Not Disturb</option>
+                    {{else}}
+                    <option value='Do Not Disturb'>Do Not Disturb</option>
+                    {{/if}}
+                    {{#if d}}
+                    <option selected value='Away'>Away</option>
+                    {{else}}
+                    <option value='Away'>Away</option>
+                    {{/if}}
+                    {{#if e}}
+                    <option selected value='Offline'>Offline</option>
+                    {{else}}
+                    <option value='Offline'>Offline</option>
+                    {{/if}}
+                </select>
+            </form>
         </script>
     </div>
 </div>
