@@ -12,6 +12,7 @@ import markdown
 import messageProcess
 import mimetypes
 import string
+import datetime
 import os
 import thread
 import access_control
@@ -278,27 +279,31 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
-    def processEvent(self, destination, event_name, start_time, end_time, event_description='', event_location='', event_picture=''):
+    def processEvent(self, destinations, event_name, start_time, end_time, event_description='', event_location='', event_picture=''):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
-            data = {'sender': cherrypy.session['userdata'].username, 'destination': destination, 'event_name': event_name, 'event_description': event_description, 'event_location': event_location, 'event_picture': event_picture, 'start_time': start_time, 'end_time': end_time}
-            packet = data
-            for peer in protocol_login_server.peerList:
-                if peer['username'] == packet['sender']:
-                    packet = messageProcess.processProf(packet, peer)
-                    if peer['ip'] == cherrypy.session['userdata'].ip:
-                        continue
-                    elif peer['location'] == '2':
-                        pass
-                    elif peer['location'] == cherrypy.session['userdata'].location:
-                        pass
-                    else:
-                        continue
-                    payload = json.dumps(packet)
-                    req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveEvent', payload, {'Content-Type': 'application/json'})
-                    response = urllib2.urlopen(req).read()
-            db.addNewEvent(data)
+            destinations = destinations.split(',')
+            start_time = time.mktime(datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M").timetuple())
+            end_time = time.mktime(datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M").timetuple())
+            for destination in destinations:
+                data = {'sender': cherrypy.session['userdata'].username, 'destination': destination, 'event_name': event_name, 'event_description': event_description, 'event_location': event_location, 'event_picture': event_picture, 'start_time': start_time, 'end_time': end_time}
+                packet = data
+                for peer in protocol_login_server.peerList:
+                    if peer['username'] == packet['sender']:
+                        packet = messageProcess.processProf(packet, peer)
+                        if peer['ip'] == cherrypy.session['userdata'].ip:
+                            continue
+                        elif peer['location'] == '2':
+                            pass
+                        elif peer['location'] == cherrypy.session['userdata'].location:
+                            pass
+                        else:
+                            continue
+                        payload = json.dumps(packet)
+                        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/receiveEvent', payload, {'Content-Type': 'application/json'})
+                        response = urllib2.urlopen(req).read()
+                db.addNewEvent(data)
             raise cherrypy.HTTPRedirect("event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
@@ -517,7 +522,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
             try:
                 data = messageProcess.unprocess(data, protocol_login_server.listLoggedInUsers)
             except:
-                return ('1: Missing Compulsory Field')
+                return ('1: Mising Compulsory Field')
             if isinstance(data, basestring):
                 return data
             

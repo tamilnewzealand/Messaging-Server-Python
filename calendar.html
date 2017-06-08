@@ -168,6 +168,170 @@
     }
 
     </style>
+    <style>
+    html,
+    body {
+    background: #efefef;
+    padding: 10px;
+    font-family: 'Varela Round';
+    }
+    /*=== 2. Anchor Link ===*/
+    a {
+    color: #aaaaaa;
+    transition: all ease-in-out 200ms;
+    }
+    a:hover {
+    color: #333333;
+    text-decoration: none;
+    }
+    /*=== 3. Text Outside the Box ===*/
+    .etc-login-form {
+    color: #919191;
+    padding: 10px 20px;
+    }
+    .etc-login-form p {
+    margin-bottom: 5px;
+    }
+    /*=== 4. Main Form ===*/
+    .login-form-1 {
+    width: 700px;
+    border-radius: 5px;
+    display: inline-block;
+    }
+    .main-login-form {
+    position: relative;
+    }
+    .login-form-1 .form-control {
+    border: 0;
+    box-shadow: 0 0 0;
+    border-radius: 0;
+    background: transparent;
+    color: #555555;
+    padding: 7px 0;
+    font-weight: bold;
+    height:auto;
+    }
+    .login-form-1 .form-control::-webkit-input-placeholder {
+    color: #999999;
+    }
+    .login-form-1 .form-control:-moz-placeholder,
+    .login-form-1 .form-control::-moz-placeholder,
+    .login-form-1 .form-control:-ms-input-placeholder {
+    color: #999999;
+    }
+    .login-form-1 .form-group {
+    margin-bottom: 0;
+    border-bottom: 2px solid #efefef;
+    padding-right: 20px;
+    position: relative;
+    }
+    .login-form-1 .form-group:last-child {
+    border-bottom: 0;
+    }
+    .login-group {
+    background: #ffffff;
+    color: #999999;
+    border-radius: 8px;
+    padding: 10px 20px;
+    }
+    .login-group-checkbox {
+    padding: 5px 0;
+    }
+    /*=== 5. Login Button ===*/
+    .login-form-1 .login-button {
+    position: absolute;
+    right: -25px;
+    top: 50%;
+    background: #ffffff;
+    color: #999999;
+    padding: 11px 0;
+    width: 50px;
+    height: 50px;
+    margin-top: -25px;
+    border: 5px solid #efefef;
+    border-radius: 50%;
+    transition: all ease-in-out 500ms;
+    }
+    .login-form-1 .login-button:hover {
+    color: #555555;
+    transform: rotate(450deg);
+    }
+    .login-form-1 .login-button.clicked {
+    color: #555555;
+    }
+    .login-form-1 .login-button.clicked:hover {
+    transform: none;
+    }
+    .login-form-1 .login-button.clicked.success {
+    color: #2ecc71;
+    }
+    .login-form-1 .login-button.clicked.error {
+    color: #e74c3c;
+    }
+    /*=== 6. Form Invalid ===*/
+    label.form-invalid {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 5;
+    display: block;
+    margin-top: -25px;
+    padding: 7px 9px;
+    background: #777777;
+    color: #ffffff;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 11px;
+    }
+    label.form-invalid:after {
+    top: 100%;
+    right: 10px;
+    border: solid transparent;
+    content: " ";
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+    border-color: transparent;
+    border-top-color: #777777;
+    border-width: 6px;
+    }
+    /*=== 7. Form - Main Message ===*/
+    .login-form-main-message {
+    background: #ffffff;
+    color: #999999;
+    border-left: 3px solid transparent;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    height: 0;
+    padding: 0 20px 0 17px;
+    opacity: 0;
+    transition: all ease-in-out 200ms;
+    }
+    .login-form-main-message.show {
+    height: auto;
+    opacity: 1;
+    padding: 10px 20px 10px 17px;
+    }
+    .login-form-main-message.success {
+    border-left-color: #2ecc71;
+    }
+    .login-form-main-message.error {
+    border-left-color: #e74c3c;
+    }
+    /* hover style just for information */
+    label:hover:before {
+    border: 1px solid #f6f6f6 !important;
+    }
+    /*=== 9. Misc ===*/
+    .logo {
+    padding: 15px 0;
+    font-size: 25px;
+    color: #aaaaaa;
+    font-weight: bold;
+    }
+</style>
     <script src="bootstrap.min.js"></script>
     <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
     <script type="text/javascript" src="handlebars-v4.0.10.js"></script>
@@ -223,16 +387,48 @@ $(function  () {
         </div>
         
         <div class='intro-screen-wrap col-lg-8'>
-            <table style='height: 400px;'>
-                <tbody>
-                    <tr>
-                        <td class='align-middle'>
-                            <h2><center>Click on an active users name on the left to start chatting.</center></h2>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="logo">Create a new Event:</div>
+                <div class='login-form-1'>
+                    <form accept-charset='UTF-8' action='/processEvent' id='processEvent'  class='text-left' method='post' enctype='multipart/form-data'>
+                        <div class='login-form-main-message'></div>
+                        <div class='main-login-form'>
+                            <div class='login-group'>
+                                <div class='form-group'>
+                                    <label for='destinations' class='sr-only'>usernames of guests</label>
+                                    <input type='text' class='form-control' id='destinations' name='destinations' placeholder='comma seperated usernames of guests'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='event_name' class='sr-only'>name of event</label>
+                                    <input type='text' class='form-control' id='event_name' name='event_name' placeholder='name of event'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='start_time' class='sr-only'>event start time</label>
+                                    <input type='datetime-local' class='form-control' id='start_time' name='start_time' placeholder='event start time'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='end_time' class='sr-only'>event end time</label>
+                                    <input type='datetime-local' class='form-control' id='end_time' name='end_time' placeholder='event end time'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='event_description' class='sr-only'>event description</label>
+                                    <input type='textarea' class='form-control' id='event_description' name='event_description' placeholder='event description'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='event_location' class='sr-only'>event location</label>
+                                    <input type='text' class='form-control' id='event_location' name='event_location' placeholder='event location'>
+                                </div>
+                                <div class='form-group'>
+                                    <label for='event_picture' class='sr-only'>event picture url</label>
+                                    <input type='text' class='form-control' id='event_picture' name='event_picture' placeholder='event picture url'>
+                                </div>
+                            </div>
+                            <button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
+    
     </div>
     </br>
     <div class='htmlstatus'>
@@ -271,6 +467,6 @@ $(function  () {
 </div>
 <link rel='stylesheet' href='simplemde.min.css'>
 <script src='simplemde.min.js'></script>
-<script>new SimpleMDE({ element: document.getElementById('message'), spellChecker: false, });</script>
+<script>new SimpleMDE({ element: document.getElementById('event_description'), spellChecker: false, });</script>
 </body>
 </html>
