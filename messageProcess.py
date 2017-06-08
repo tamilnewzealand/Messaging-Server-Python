@@ -11,10 +11,11 @@ import binascii
 import db
 import urllib2
 
+
 def unprocess(data, listLoggedInUsers):
     if 'encryption' not in data:
         data['encryption'] = 0
-    
+
     if int(data['encryption']) == 1:
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
@@ -26,21 +27,24 @@ def unprocess(data, listLoggedInUsers):
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.decrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+                data[thing] = Ciphers.AESCipher.decrypt(
+                    data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
     if int(data['encryption']) == 3:
         for user in listLoggedInUsers:
-                if user['username'] == data['destination']:
-                    data = Ciphers.RSA1024Cipher.decrypt(data, user['rsakey'])
+            if user['username'] == data['destination']:
+                data = Ciphers.RSA1024Cipher.decrypt(data, user['rsakey'])
     if int(data['encryption']) == 4:
         for user in listLoggedInUsers:
             if user['username'] == data['destination']:
-                data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(data['decryptionKey'], user['rsakey'])
+                data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(
+                    data['decryptionKey'], user['rsakey'])
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.decrypt(data[thing], data['decryptionKey'])
-        
+                data[thing] = Ciphers.AESCipher.decrypt(
+                    data[thing], data['decryptionKey'])
+
     if 'stamp' not in data:
         data['stamp'] = int(time.time())
     if int(data['stamp']) + 31536000 < int(time.time()):
@@ -52,7 +56,7 @@ def unprocess(data, listLoggedInUsers):
         data['hashing'] = 0
     if 'hash' not in data:
         data['hash'] = ''
-    
+
     text = ''
     salt = data['sender'].encode('ascii')
     if 'message' in data:
@@ -87,21 +91,23 @@ def unprocess(data, listLoggedInUsers):
     if int(data['hashing']) == 8:
         if scrypt.verify(text + salt, data['hash']):
             return data
-    
+
     return str('7: Hash does not match')
+
 
 def process(data, peer):
     supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
-        respdata = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+        respdata = urllib2.urlopen(
+            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
         if 'crypt' in respdata:
             if 'ash' in respdata:
                 supported = respdata.split("\n")
     except:
         pass
-    
+
     if '8' in supported[-1]:
         data['hashing'] = '8'
     if '7' in supported[-1]:
@@ -143,7 +149,7 @@ def process(data, peer):
         data['hash'] = scrypt.hash(text)
     if data['hashing'] == '8':
         data['hash'] = scrypt.hash(text + salt)
-    
+
     if '1' in supported[-2]:
         data['encryption'] = '1'
     if '2' in supported[-2]:
@@ -152,7 +158,7 @@ def process(data, peer):
         data['encryption'] = '3'
     if '4' in supported[-2]:
         data['encryption'] = '4'
-    
+
     if data['encryption'] == '1':
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
@@ -164,13 +170,15 @@ def process(data, peer):
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.encrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+                data[thing] = Ciphers.AESCipher.encrypt(
+                    data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
     if data['encryption'] == '3':
         data = Ciphers.RSA1024Cipher.encrypt(data, peer['publicKey'])
     if data['encryption'] == '4':
         key = Ciphers.AESCipher.generateKeys()
-        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(key, peer['publicKey'])
-        for thing in data:                  
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(
+            key, peer['publicKey'])
+        for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:
@@ -178,10 +186,11 @@ def process(data, peer):
 
     return data
 
+
 def unprocessProf(data, user):
     if 'encryption' not in data:
         data['encryption'] = 0
-    
+
     if int(data['encryption']) == 1:
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
@@ -193,30 +202,35 @@ def unprocessProf(data, user):
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.decrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+                data[thing] = Ciphers.AESCipher.decrypt(
+                    data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
     if int(data['encryption']) == 3:
         data = Ciphers.RSA1024Cipher.decrypt(data, user['rsakey'])
     if int(data['encryption']) == 4:
-        data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(data['decryptionKey'], user['rsakey'])
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(
+            data['decryptionKey'], user['rsakey'])
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.decrypt(data[thing], data['decryptionKey'])
+                data[thing] = Ciphers.AESCipher.decrypt(
+                    data[thing], data['decryptionKey'])
     return data
+
 
 def processProf(data, peer):
     supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
-        respdata = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+        respdata = urllib2.urlopen(
+            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
         if 'crypt' in respdata:
             if 'ash' in respdata:
                 supported = respdata.split("\n")
     except:
         pass
-    
+
     data['encryption'] = '0'
 
     if '1' in supported[-2]:
@@ -227,7 +241,7 @@ def processProf(data, peer):
         data['encryption'] = '3'
     if '4' in supported[-2]:
         data['encryption'] = '4'
-    
+
     if data['encryption'] == '1':
         for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
@@ -239,13 +253,15 @@ def processProf(data, peer):
             if thing == 'encryption' or thing == 'destination' or thing == 'sender':
                 pass
             else:
-                data[thing] = Ciphers.AESCipher.encrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+                data[thing] = Ciphers.AESCipher.encrypt(
+                    data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
     if data['encryption'] == '3':
         data = Ciphers.RSA1024Cipher.encrypt(data, peer['publicKey'])
     if data['encryption'] == '4':
         key = Ciphers.AESCipher.generateKeys()
-        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(key, peer['publicKey'])
-        for thing in data:                  
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(
+            key, peer['publicKey'])
+        for thing in data:
             if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
                 pass
             else:

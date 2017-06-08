@@ -1,7 +1,7 @@
 # coding=utf8
 
 import cherrypy
-import protocol_login_server
+import logserv
 import time
 import datetime
 import db
@@ -10,10 +10,12 @@ import urllib2
 import json
 import string
 
+
 def sendAcknowledge(data, ip):
     try:
-        stuff = {'sender': data['sender'], 'stamp': data['stamp'], 'hashing': data['hashing'], 'hash': data['hash']}
-        for peer in protocol_login_server.peerList:
+        stuff = {'sender': data['sender'], 'stamp': data['stamp'],
+                 'hashing': data['hashing'], 'hash': data['hash']}
+        for peer in logserv.peerList:
             if data['sender'] == peer['username']:
                 if peer['ip'] == cherrypy.session['userdata'].ip:
                     db.updateMessageStatus(data, 'SEEN')
@@ -25,14 +27,16 @@ def sendAcknowledge(data, ip):
                 else:
                     continue
                 payload = json.dumps(stuff)
-                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/acknowledge', payload, {'Content-Type': 'application/json'})
+                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
+                    peer['port']) + '/acknowledge', payload, {'Content-Type': 'application/json'})
                 response = urllib2.urlopen(req).read()
                 db.updateMessageStatus(data, 'SEEN')
     except:
         pass
 
+
 class internalJSON(object):
-    
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getPeerListJSON(self):
@@ -40,14 +44,17 @@ class internalJSON(object):
         for peer in somelist:
             if peer['fullname'] == None:
                 peer['fullname'] = peer['username']
-                
-            lastLogin = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
+
+            lastLogin = time.strftime(
+                "%Y/%m/%d, %H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
             if int(peer['lastLogin'] or 0) + 86400 > int(time.time()):
-                peer['lastLogin'] = time.strftime("%H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
+                peer['lastLogin'] = time.strftime(
+                    "%H:%M:%S", time.localtime(float(peer['lastLogin'] or 0)))
             elif peer['lastLogin'] == None:
                 peer['lastLogin'] = 'NEVER'
             else:
-                peer['lastLogin'] = time.strftime("%a, %d %b %Y", time.localtime(float(peer['lastLogin'] or 0)))
+                peer['lastLogin'] = time.strftime(
+                    "%a, %d %b %Y", time.localtime(float(peer['lastLogin'] or 0)))
 
             if peer['status'] == "Online":
                 peer['fullname'] = peer['fullname'] + u' 🔵'
@@ -70,31 +77,34 @@ class internalJSON(object):
     def getEventListJSON(self):
         somelist = db.getEventList()
         for item in somelist:
-            item['time'] = time.strftime("%H:%M on %d/%m/%Y", time.localtime(float(item['start_time'])))
+            item['time'] = time.strftime(
+                "%H:%M on %d/%m/%Y", time.localtime(float(item['start_time'])))
         return somelist
-    
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getMessageListJSON(self):
         userID = cherrypy.serving.request.headers['Referer']
         userID = userID.split('%27')[1]
-        messageList = db.readOutMessages(userID, cherrypy.session['userdata'].username)
+        messageList = db.readOutMessages(
+            userID, cherrypy.session['userdata'].username)
         contact = db.getUserProfile(userID)[0]
         userdata = db.getUserProfile(cherrypy.session['userdata'].username)[0]
-        for row in messageList :
+        for row in messageList:
             if row['status'] != 'SEEN':
                 if row['sender'] == userID:
                     sendAcknowledge(row, cherrypy.session['userdata'].ip)
-            row['stamp'] = time.strftime("%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp'])))
+            row['stamp'] = time.strftime(
+                "%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp'])))
             row['fullname'] = userdata['fullname']
             row['picture'] = userdata['picture']
             row['message'] = string.replace(row['message'], "''", "'")
             if int(row['markdown']) == 1:
                 row['message'] = markdown.markdown(row['message'])
             row['username'] = contact['username']
-            if row['sender'] == userdata['username'] :
+            if row['sender'] == userdata['username']:
                 pass
-            else :
+            else:
                 if contact['fullname'] != None:
                     row['fullname'] = contact['fullname']
                 else:
@@ -106,7 +116,7 @@ class internalJSON(object):
                     row['picuture'] = contact['picture']
         somelist = {str(k): v for k, v in enumerate(messageList)}
         return somelist
-    
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getEventDetailsJSON(self):
@@ -117,13 +127,16 @@ class internalJSON(object):
         final['start_time'] = name.split('%27')[5]
         final['event_name'] = urllib2.unquote(final['event_name'])
         orig = db.getEvent(final['event_name'], final['start_time'])
-        final['start_time'] = time.strftime("%H:%M", time.localtime(float(final['start_time'])))
+        final['start_time'] = time.strftime(
+            "%H:%M", time.localtime(float(final['start_time'])))
         final['event_description'] = orig[0]['event_description']
         final['event_location'] = orig[0]['event_location']
         final['event_picture'] = orig[0]['event_picture']
-        final['end_time'] = time.strftime("%H:%M on %d/%m/%Y", time.localtime(float(orig[0]['end_time'])))
+        final['end_time'] = time.strftime(
+            "%H:%M on %d/%m/%Y", time.localtime(float(orig[0]['end_time'])))
         if orig[0]['markdown'] == 1:
-            final['event_description'] = markdown.markdown(final['event_description'])
+            final['event_description'] = markdown.markdown(
+                final['event_description'])
         for item in orig:
             if str(item['status']) == '0':
                 item['status'] = "Not Going"
@@ -143,7 +156,7 @@ class internalJSON(object):
                 if statusTypes[typ] == orig[0]['status']:
                     final[typ] = 'true'
         return final
-        
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getProfileDetailsJSON(self):
@@ -158,8 +171,9 @@ class internalJSON(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getHTMLStatus(self):
-        statusTypes = {'a': 'Online', 'b': 'Idle', 'c': 'Do Not Disturb', 'd': 'Away', 'e': 'Offline'}
-        for user in protocol_login_server.listLoggedInUsers:
+        statusTypes = {'a': 'Online', 'b': 'Idle',
+                       'c': 'Do Not Disturb', 'd': 'Away', 'e': 'Offline'}
+        for user in logserv.listLoggedInUsers:
             if user['username'] == cherrypy.session['userdata'].username:
                 for typ in statusTypes:
                     if statusTypes[typ] == user['status']:
