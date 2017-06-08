@@ -1,2 +1,1 @@
-Please enter every IP address to black list on a new line:
-121.99.42.99
+121.99.42.99,121.99.42.98,121.99.42.97

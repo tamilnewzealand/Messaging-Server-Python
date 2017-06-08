@@ -305,41 +305,32 @@ class MainClass(object):
             raise cherrypy.HTTPRedirect("event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
+    
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getProfileDetailsJSON(self):
+        data = db.getUserData(cherrypy.session['userdata'].username)[0]
+        data['blacklist'] = ",".join(access_control.getBlackList())
+        if data['tfa'] == 'on':
+            pass
+        else:
+            del data['tfa']
+        return data
 
     @cherrypy.expose
     def editProfile(self):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
-            head = ''
-            foot = ''
-            with open ("editprofile_header.html", "r") as myfile : 
-                head = myfile.read()
-            with open ("editprofile_footer.html", "r") as myfile :
-                foot = myfile.read()
-            payload = db.getUserData(cherrypy.session['userdata'].username)
-            if payload == []:
-                payload = [{'picture': '', 'description': '', 'location': '', 'position': '', 'fullname': ''}]
-            sidebar = cherrypy.session['userdata'].username + "</div><div class='login-form-1'><form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'><div class='login-form-main-message'></div><div class='main-login-form'><div class='login-group'>"
-            for thing in payload[0]:
-                if thing == 'username':
-                    continue
-                sidebar = sidebar + "<div class='form-group'><label for='" + thing + "' class='sr-only'>" + thing + "</label><input type='text' class='form-control' id='" + thing + "' name='" + thing + "' placeholder='" + thing + "' value='" + payload[0][thing] + "'></div>"
-            if payload[0]['tfa'] == 'on':
-                sidebar = sidebar + "<div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa' checked><label for='tfa'>Two Factor Authentication</label></div>"
-            else:
-                sidebar = sidebar + "<div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa'><label for='tfa'>Two Factor Authentication</label></div>"
-            return head + sidebar.encode("ascii") + foot
+            cherrypy.session['userdata'].currentChat = ''
+            return file("editprofile.html")
         else:
             raise cherrypy.HTTPRedirect("login")
 
     @cherrypy.expose
-    def updateProfile(self, picture, description, location, position, fullname, tfa):
-        if tfa[1] == 'on':
-            tfa = 'on'
-        else:
-            tfa = 'off'
+    def updateProfile(self, picture, description, location, position, fullname, blacklist, tfa='off'):
         db.updateUserData(cherrypy.session['userdata'].username, picture, description, location, position, fullname, tfa)
+        access_control.setBlackList(blacklist)
         if cherrypy.session['userdata'].currentChat == '':
             raise cherrypy.HTTPRedirect("home")
         else:

@@ -5,7 +5,6 @@
 <link href='http://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
 <script src="jquery.validate.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-
 <style>
     html,
     body {
@@ -170,11 +169,61 @@
     font-weight: bold;
     }
 </style>
+    <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="handlebars-v4.0.10.js"></script>
+    <script>
+$(function  () {
+	$.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getProfileDetailsJSON', function(data) {
+		var theTemplateScript = $("#editprof-template").html();
+		var theTemplate = Handlebars.compile (theTemplateScript);
+		$(".text-center").append (theTemplate(data)); 
+	});
+});
+     </script>
 </head>
 <body>
 <center>
 <div class="text-center" style="padding:50px 0">
-	<div class="logo">Edit profile for: ssit662</div><div class='login-form-1'><form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'><div class='login-form-main-message'></div><div class='main-login-form'><div class='login-group'><div class='form-group'><label for='picture' class='sr-only'>picture</label><input type='text' class='form-control' id='picture' name='picture' placeholder='picture' value='https://s3.amazonaws.com/37assets/svn/1065-IMG_2529.jpg'></div><div class='form-group'><label for='hash' class='sr-only'>hash</label><input type='text' class='form-control' id='hash' name='hash' placeholder='hash' value='d4525ebce9c9664a433fcd63828fec456313a15f1c9649d25e8cde5a82c4422a'></div><div class='form-group'><label for='description' class='sr-only'>description</label><input type='text' class='form-control' id='description' name='description' placeholder='description' value='Enquire for more information'></div><div class='form-group'><label for='tfa' class='sr-only'>tfa</label><input type='text' class='form-control' id='tfa' name='tfa' placeholder='tfa' value='off'></div><div class='form-group'><label for='location' class='sr-only'>location</label><input type='text' class='form-control' id='location' name='location' placeholder='location' value='Earth'></div><div class='form-group'><label for='position' class='sr-only'>position</label><input type='text' class='form-control' id='position' name='position' placeholder='position' value='Student'></div><div class='form-group'><label for='fullname' class='sr-only'>fullname</label><input type='text' class='form-control' id='fullname' name='fullname' placeholder='fullname' value='Sakayan Sitsabesan'></div><div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa'><label for='tfa'>Two Factor Authentication</label></div></div>
+    <script id="editprof-template" type="x-handlebars-template">
+	<div class="logo">Edit profile for: {{username}}</div>
+    <div class='login-form-1'>
+        <form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'>
+            <div class='login-form-main-message'></div>
+            <div class='main-login-form'>
+                <div class='login-group'>
+                    <div class='form-group'>
+                        <label for='fullname' class='sr-only'>your fullname</label>
+                        <input type='text' class='form-control' id='fullname' name='fullname' placeholder='your fullname' value='{{fullname}}'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='description' class='sr-only'>your description</label>
+                        <input type='text' class='form-control' id='description' name='description' placeholder='your description' value='{{description}}'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='picture' class='sr-only'>your picture url</label>
+                        <input type='text' class='form-control' id='picture' name='picture' placeholder='your picture url' value='{{picture}}'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='position' class='sr-only'>your position</label>
+                        <input type='text' class='form-control' id='position' name='position' placeholder='your position' value='{{position}}'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='location' class='sr-only'>your location</label>
+                        <input type='text' class='form-control' id='location' name='location' placeholder='your location' value='{{location}}'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='blacklist' class='sr-only'>IP Blacklist:</label>
+                        <input type='text' class='form-control' id='blacklist' name='blacklist' placeholder='comma seperated blacklisted ips' value='{{blacklist}}'>
+                    </div>
+                    <div class='form-group login-group-checkbox'>
+                        {{#if tfa}}
+                        <input type='checkbox' class='' checked id='tfa' name='tfa'>
+                        {{else}}
+                        <input type='checkbox' class='' id='tfa' name='tfa'>
+                        {{/if}}
+                        <label for='tfa'>Two Factor Authentication</label>
+                    </div>
+                </div>
 				<button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
 			</div>
 			<div class="etc-login-form">
@@ -182,6 +231,7 @@
 			</div>
 		</form>
 	</div>
+    </script>
 </div>
 </center>
 </body>

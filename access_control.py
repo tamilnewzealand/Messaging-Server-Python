@@ -6,10 +6,14 @@ accessList = []
 
 def getBlackList():
     blacklist = open("blacklist.txt", "r")
-    lines = blacklist.read().split('\n')
-    lines.pop(0)
+    lines = blacklist.read().split(',')
     blacklist.close()
     return lines
+
+def setBlackList(listings):
+    blacklist = open("blacklist.txt", "w")
+    blacklist.write(listings)
+    blacklist.close()
 
 def access_control():
     ip = cherrypy.request.headers["Remote-Addr"]
