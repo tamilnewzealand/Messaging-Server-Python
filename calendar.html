@@ -173,8 +173,8 @@
     <script type="text/javascript" src="handlebars-v4.0.10.js"></script>
     <script>
 $(function  () {
-	$.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getPeerListJSON', function(data) {
-		var theTemplateScript = $("#peerlist-template").html();
+	$.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getEventListJSON', function(data) {
+		var theTemplateScript = $("#eventlist-template").html();
 		var theTemplate = Handlebars.compile (theTemplateScript);
 		$(".conversation-wrap").append (theTemplate(data)); 
 	});
@@ -208,14 +208,14 @@ $(function  () {
 
         <div class="conversation-wrap col-lg-3">
             <ul class="peernav"></ul>
-            <script id="peerlist-template" type="x-handlebars-template">
+            <script id="eventlist-template" type="x-handlebars-template">
                 {{#each this}}
                 <div class="media conversation">
-                    <a class="pull-left" href="chat?userID='{{username}}'">
-                    <img class="media-object" data-src="holder.js/64x64" alt="profilepic" style="width: 50px; height: 50px;" src="{{picture}}"></a>
+                    <a class="pull-left" href="event?sender='{{sender}}'&name='{{event_name}}'&start_time='{{start_time}}'">
+                    <img class="media-object" data-src="holder.js/64x64" alt="eventpic" style="width: 50px; height: 50px;" src="{{event_picture}}"></a>
                     <div class="media-body">
-                        <h5 class="media-heading">{{fullname}}</h5>
-                        <small>Last Online: {{lastLogin}}</small>
+                        <h5 class="media-heading">{{event_name}}</h5>
+                        <small>{{event_location}} at {{time}}</small>
                     </div>
                 </div>
                 {{/each}}

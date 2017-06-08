@@ -10,6 +10,7 @@ def initTable(c) :
 	c.execute("CREATE TABLE messages (sender STRING, destination STRING, message STRING, stamp STRING, encryption STRING, hashing STRING, hash STRING, status STRING, markdown STRING)")
 	c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
 	c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, publicKey STRING, status STRING)")
+	c.execute("CREATE TABLE events (sender STRING, destination STRING, event_name STRING, event_description STRING, event_location STRING, event_picture STRING, start_time STRING, end_time STRING, markdown STRING, encryption STRING, status STRING)")
 	data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers").read()
 	data = data.replace(",", "'), ('")
 	c.execute("INSERT INTO userprofiles (username) VALUES ('" + data + "')")
@@ -180,3 +181,47 @@ def getPeerList():
 		pass
 	closeDB(conn, c)
 	return userdata
+
+def getEventList():
+	(conn, c) = openDB()
+	userdata = ''
+	try :
+		c.execute("SELECT * FROM events")
+		eventdata = [dict(zip(['sender', 'destination', 'event_name', 'event_description', 'event_location', 'event_picture', 'start_time', 'end_time', 'markdown', 'encryption', 'status'], row)) for row in c.fetchall()]
+	except :
+		pass
+	closeDB(conn, c)
+	return eventdata
+
+def getEvent(event_name, start_time):
+	(conn, c) = openDB()
+	userdata = ''
+	try :
+		c.execute("SELECT * FROM events WHERE event_name='{a}' AND start_time='{b}'".format(a=event_name, b=start_time))
+		eventdata = [dict(zip(['sender', 'destination', 'event_name', 'event_description', 'event_location', 'event_picture', 'start_time', 'end_time', 'markdown', 'encryption', 'status'], row)) for row in c.fetchall()]
+	except :
+		pass
+	closeDB(conn, c)
+	return eventdata
+
+def updateEventStatus(newStatus, sender, event_name, start_time):
+	try :
+		(conn, c) = openDB()
+		c.execute("UPDATE events SET status='{a}' WHERE sender='{b}' AND event_name='{c}' AND start_time='{d}'".format(a=newStatus, b=sender, c=event_name, d=start_time))
+		closeDB(conn, c)
+	except :
+		pass
+
+
+def addNewEvent(data):
+	(conn, c) = openDB()
+	c.execute("SELECT * FROM events WHERE sender='{a}' AND event_name='{b}' AND start_time='{c}'".format(a=data['sender'], b=data['event_name'], c=data['start_time']))
+	stuff = c.fetchall()
+	if stuff == []:
+		try:
+			c.execute("INSERT INTO events VALUES (:sender, :destination, :event_name, :event_description, :event_location, :event_picture, :start_time, :end_time, :markdown, :encryption, :status)", data)
+			closeDB(conn, c)
+			return True
+		except:
+			closeDB(conn, c)
+			return False

@@ -177,3 +177,78 @@ def process(data, peer):
                 data[thing] = Ciphers.AESCipher.encrypt(data[thing], key)
 
     return data
+
+def unprocessProf(data, user):
+    if 'encryption' not in data:
+        data['encryption'] = 0
+    
+    if int(data['encryption']) == 1:
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.XORCipher.decrypt(data[thing])
+    if int(data['encryption']) == 2:
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.decrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+    if int(data['encryption']) == 3:
+        data = Ciphers.RSA1024Cipher.decrypt(data, user['rsakey'])
+    if int(data['encryption']) == 4:
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.decryptValue(data['decryptionKey'], user['rsakey'])
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.decrypt(data[thing], data['decryptionKey'])
+    return data
+
+def processProf(data, peer):
+    supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
+    try:
+        if peer['username'] == 'ssit662':
+            peer['ip'] = 'localhost'
+        respdata = urllib2.urlopen('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+        if 'crypt' in respdata:
+            if 'ash' in respdata:
+                supported = respdata.split("\n")
+    except:
+        pass
+    
+    data['encryption'] = '0'
+
+    if '1' in supported[-2]:
+        data['encryption'] = '1'
+    if '2' in supported[-2]:
+        data['encryption'] = '2'
+    if '3' in supported[-2]:
+        data['encryption'] = '3'
+    if '4' in supported[-2]:
+        data['encryption'] = '4'
+    
+    if data['encryption'] == '1':
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.XORCipher.encrypt(data[thing])
+    if data['encryption'] == '2':
+        for thing in data:
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.encrypt(data[thing], '41fb5b5ae4d57c5ee528adb078ac3b2e')
+    if data['encryption'] == '3':
+        data = Ciphers.RSA1024Cipher.encrypt(data, peer['publicKey'])
+    if data['encryption'] == '4':
+        key = Ciphers.AESCipher.generateKeys()
+        data['decryptionKey'] = Ciphers.RSA1024Cipher.encryptValue(key, peer['publicKey'])
+        for thing in data:                  
+            if thing == 'encryption' or thing == 'destination' or thing == 'sender' or thing == 'decryptionKey':
+                pass
+            else:
+                data[thing] = Ciphers.AESCipher.encrypt(data[thing], key)
+
+    return data

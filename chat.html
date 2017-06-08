@@ -173,17 +173,17 @@
     <script type="text/javascript" src="handlebars-v4.0.10.js"></script>
     <script>
 $(function  () {
-	$.getJSON('http://localhost:10008/getPeerListJSON', function(data) {
+	$.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getPeerListJSON', function(data) {
 		var theTemplateScript = $("#peerlist-template").html();
 		var theTemplate = Handlebars.compile (theTemplateScript);
 		$(".conversation-wrap").append (theTemplate(data)); 
 	});
-    $.getJSON('http://localhost:10008/getMessageListJSON', function(data) {
+    $.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getMessageListJSON', function(data) {
 		var theTemplateScript = $("#messagelist-template").html();
 		var theTemplate = Handlebars.compile (theTemplateScript);
 		$(".msg-wrap").append (theTemplate(data)); 
 	});
-    $.getJSON('http://localhost:10008/getHTMLStatus', function(data) {
+    $.getJSON(window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/getHTMLStatus', function(data) {
 		var theTemplateScript = $("#htmlstatus-template").html();
 		var theTemplate = Handlebars.compile (theTemplateScript);
 		$(".htmlstatus").append (theTemplate(data)); 
@@ -197,15 +197,15 @@ $(function  () {
     <div class="row">
         <div class="col-lg-3">
             <div class="btn-panel btn-panel-conversation">
-                <a href="editProfile" class="btn  col-lg-6 send-message-btn " role="button"><i class="fa fa-cog"></i>Edit Profile</a>
-                <a href="home" class="btn  col-lg-6  send-message-btn pull-right" role="button"><i class="fa fa-plus"></i>New Message</a>
+                <a href="home" class="btn  col-lg-6 send-message-btn " role="button"><i class="fa fa-comments"></i> Messaging</a>
+                <a href="calendar" class="btn  col-lg-6  send-message-btn pull-right" role="button"><i class="fa fa-calendar"></i> Events</a>
             </div>
         </div>
 
         <div class="col-lg-offset-1 col-lg-7">
             <div class="btn-panel btn-panel-msg">
-
-                <a href="logout" class="btn  col-lg-3  send-message-btn pull-right" role="button"><i class="fa fa-gears"></i> Log Out</a>
+                <a href="logout" class="btn  col-lg-3  send-message-btn pull-right" role="button"><i class="fa fa-cog"></i> Log Out</a>
+                <a href="editProfile" class="btn  col-lg-3  send-message-btn pull-right" role="button"><i class="fa fa-gears"></i> Edit Profile</a>
             </div>
         </div>
     </div>

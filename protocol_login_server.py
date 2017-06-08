@@ -5,6 +5,7 @@ import time
 import thread
 import socket
 import db
+import messageProcess
 import tfa
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -17,6 +18,7 @@ import string
 
 centralServer = 'https://cs302.pythonanywhere.com/'
 peerList = None
+listLoggedInUsers = []
 
 def randomword(length):
    return ''.join(random.choice(string.lowercase) for i in range(length))
@@ -219,11 +221,12 @@ class protocol_login_server():
                 else:
                     continue
                 try:
-                    payload = {'profile_username': peer['username']}
+                    payload = {'profile_username': peer['username'], 'sender': listLoggedInUsers[0]['username']}
                     payload = json.dumps(payload)
                     req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})                  
                     data = json.loads(urllib2.urlopen(req).read())
                     data['username'] = peer['username']
+                    messageProcess.unprocessProf(data, listLoggedInUsers[0])
                     db.updateUserProfileA(data)
                 except:
                     pass
@@ -241,6 +244,7 @@ class protocol_login_server():
         self.online = True
         self.location = '2'
         self.bs = 16
+        self.currentEvent = None
         self.key = '150ecd12d550d05ad83f18328e536f53'
         self.rsakey = Ciphers.RSA1024Cipher.generatekeys()
         self.pubkey = binascii.hexlify(self.rsakey.publickey().exportKey('DER'))

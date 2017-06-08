@@ -1,9 +1,9 @@
 <html>
 <head>
 <title>Edit Profile</title>
-<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/font-awesome.min.css">
 <link href='http://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.13.1/jquery.validate.min.js"></script>
+<script src="jquery.validate.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 
 <style>
@@ -158,113 +158,9 @@
     .login-form-main-message.error {
     border-left-color: #e74c3c;
     }
-    /*=== 8. Custom Checkbox & Radio ===*/
-    /* Base for label styling */
-    [type="checkbox"]:not(:checked),
-    [type="checkbox"]:checked,
-    [type="radio"]:not(:checked),
-    [type="radio"]:checked {
-    position: absolute;
-    left: -9999px;
-    }
-    [type="checkbox"]:not(:checked) + label,
-    [type="checkbox"]:checked + label,
-    [type="radio"]:not(:checked) + label,
-    [type="radio"]:checked + label {
-    position: relative;
-    padding-left: 25px;
-    padding-top: 1px;
-    cursor: pointer;
-    }
-    /* checkbox aspect */
-    [type="checkbox"]:not(:checked) + label:before,
-    [type="checkbox"]:checked + label:before,
-    [type="radio"]:not(:checked) + label:before,
-    [type="radio"]:checked + label:before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 2px;
-    width: 17px;
-    height: 17px;
-    border: 0px solid #aaa;
-    background: #f0f0f0;
-    border-radius: 3px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-    /* checked mark aspect */
-    [type="checkbox"]:not(:checked) + label:after,
-    [type="checkbox"]:checked + label:after,
-    [type="radio"]:not(:checked) + label:after,
-    [type="radio"]:checked + label:after {
-    position: absolute;
-    color: #555555;
-    transition: all .2s;
-    }
-    /* checked mark aspect changes */
-    [type="checkbox"]:not(:checked) + label:after,
-    [type="radio"]:not(:checked) + label:after {
-    opacity: 0;
-    transform: scale(0);
-    }
-    [type="checkbox"]:checked + label:after,
-    [type="radio"]:checked + label:after {
-    opacity: 1;
-    transform: scale(1);
-    }
-    /* disabled checkbox */
-    [type="checkbox"]:disabled:not(:checked) + label:before,
-    [type="checkbox"]:disabled:checked + label:before,
-    [type="radio"]:disabled:not(:checked) + label:before,
-    [type="radio"]:disabled:checked + label:before {
-    box-shadow: none;
-    border-color: #8c8c8c;
-    background-color: #878787;
-    }
-    [type="checkbox"]:disabled:checked + label:after,
-    [type="radio"]:disabled:checked + label:after {
-    color: #555555;
-    }
-    [type="checkbox"]:disabled + label,
-    [type="radio"]:disabled + label {
-    color: #8c8c8c;
-    }
-    /* accessibility */
-    [type="checkbox"]:checked:focus + label:before,
-    [type="checkbox"]:not(:checked):focus + label:before,
-    [type="checkbox"]:checked:focus + label:before,
-    [type="checkbox"]:not(:checked):focus + label:before {
-    border: 1px dotted #f6f6f6;
-    }
     /* hover style just for information */
     label:hover:before {
     border: 1px solid #f6f6f6 !important;
-    }
-    /*=== Customization ===*/
-    /* radio aspect */
-    [type="checkbox"]:not(:checked) + label:before,
-    [type="checkbox"]:checked + label:before {
-    border-radius: 3px;
-    }
-    [type="radio"]:not(:checked) + label:before,
-    [type="radio"]:checked + label:before {
-    border-radius: 35px;
-    }
-    /* selected mark aspect */
-    [type="checkbox"]:not(:checked) + label:after,
-    [type="checkbox"]:checked + label:after {
-    content: '✔';
-    top: 0;
-    left: 2px;
-    font-size: 14px;
-    }
-    [type="radio"]:not(:checked) + label:after,
-    [type="radio"]:checked + label:after {
-    content: '\2022';
-    top: 0;
-    left: 3px;
-    font-size: 30px;
-    line-height: 25px;
     }
     /*=== 9. Misc ===*/
     .logo {
@@ -278,38 +174,7 @@
 <body>
 <center>
 <div class="text-center" style="padding:50px 0">
-	<div class="logo">Edit profile for: ssit662</div>
-	<div class="login-form-1">
-		<form accept-charset="UTF-8" action="/edit_profile" id="edit_profile"  class="text-left" method="post" enctype="multipart/form-data">
-			<div class="login-form-main-message"></div>
-			<div class="main-login-form">
-				<div class="login-group">
-					<div class="form-group">
-						<label for="fullname" class="sr-only">Fullname</label>
-						<input type="text" class="form-control" id="fullname" name="fullname" placeholder="fullname" value="ssit662">
-					</div>
-					<div class="form-group">
-						<label for="position" class="sr-only">Position</label>
-						<input type="text" class="form-control" id="position" name="position" placeholder="position">
-					</div>
-					<div class="form-group">
-						<label for="description" class="sr-only">Description</label>
-						<input type="text" class="form-control" id="description" name="description" placeholder="description">
-					</div>
-					<div class="form-group">
-						<label for="location" class="sr-only">Location</label>
-						<input type="text" class="form-control" id="location" name="location" placeholder="location">
-					</div>
-					<div class="form-group">
-						<label for="picture" class="sr-only">Picture URL</label>
-						<input type="text" class="form-control" id="picture" name="picture" placeholder="picture">
-					</div>
-
-					<div class="form-group login-group-checkbox">
-						<input type="checkbox" class="" id="agree" name="reg_agree">
-						<label for="agree">I agree with the <a href="#">terms.</a></label>
-					</div>
-				</div>
+	<div class="logo">Edit profile for: ssit662</div><div class='login-form-1'><form accept-charset='UTF-8' action='/updateProfile' id='updateProfile'  class='text-left' method='post' enctype='multipart/form-data'><div class='login-form-main-message'></div><div class='main-login-form'><div class='login-group'><div class='form-group'><label for='picture' class='sr-only'>picture</label><input type='text' class='form-control' id='picture' name='picture' placeholder='picture' value='https://s3.amazonaws.com/37assets/svn/1065-IMG_2529.jpg'></div><div class='form-group'><label for='hash' class='sr-only'>hash</label><input type='text' class='form-control' id='hash' name='hash' placeholder='hash' value='d4525ebce9c9664a433fcd63828fec456313a15f1c9649d25e8cde5a82c4422a'></div><div class='form-group'><label for='description' class='sr-only'>description</label><input type='text' class='form-control' id='description' name='description' placeholder='description' value='Enquire for more information'></div><div class='form-group'><label for='tfa' class='sr-only'>tfa</label><input type='text' class='form-control' id='tfa' name='tfa' placeholder='tfa' value='off'></div><div class='form-group'><label for='location' class='sr-only'>location</label><input type='text' class='form-control' id='location' name='location' placeholder='location' value='Earth'></div><div class='form-group'><label for='position' class='sr-only'>position</label><input type='text' class='form-control' id='position' name='position' placeholder='position' value='Student'></div><div class='form-group'><label for='fullname' class='sr-only'>fullname</label><input type='text' class='form-control' id='fullname' name='fullname' placeholder='fullname' value='Sakayan Sitsabesan'></div><div class='form-group login-group-checkbox'><input type='checkbox' class='' id='tfa' name='tfa'><label for='tfa'>Two Factor Authentication</label></div></div>
 				<button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
 			</div>
 			<div class="etc-login-form">
