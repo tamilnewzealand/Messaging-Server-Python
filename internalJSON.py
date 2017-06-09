@@ -30,7 +30,7 @@ def sendAcknowledge(data, ip):
                 payload = json.dumps(stuff)
                 req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                     peer['port']) + '/acknowledge', payload, {'Content-Type': 'application/json'})
-                response = urllib2.urlopen(req).read()
+                response = urllib2.urlopen(req, timeout=1).read()
                 db.updateMessageStatus(data, 'SEEN')
     except:
         pass

@@ -56,7 +56,7 @@ class logserv():
         try:
             req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(
                 self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
-            response = urllib2.urlopen(req).read()
+            response = urllib2.urlopen(req, timeout=2).read()
             self.online = True
         except:
             if db.checkUserHash(self.username, self.hashed):
@@ -80,7 +80,7 @@ class logserv():
         try:
             req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(
                 self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
-            response = urllib2.urlopen(req).read()
+            response = urllib2.urlopen(req, timeout=2).read()
             self.online = True
         except:
             if db.checkUserHash(self.username, self.hashed):
@@ -94,7 +94,7 @@ class logserv():
                     try:
                         req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                             peer['port']) + '/report', payload, {'Content-Type': 'application/json'})
-                        response = urllib2.urlopen(req).read()
+                        response = urllib2.urlopen(req, timeout=2).read()
                     except:
                         pass
                 response = u'0, Server offline but user verified'
@@ -138,7 +138,7 @@ class logserv():
             if self.online:
                 req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(
                     self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
-                response = urllib2.urlopen(req).read()
+                response = urllib2.urlopen(req, timeout=2).read()
                 print("Response is: " + str(response))
                 if '0, ' in str(response):
                     self.status = False
@@ -152,7 +152,7 @@ class logserv():
             if self.online:
                 req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(
                     self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
-                response = urllib2.urlopen(req).read()
+                response = urllib2.urlopen(req, timeout=2).read()
                 global peerList
                 peerList = json.loads(response).values()
                 for peer in peerList:
@@ -167,7 +167,7 @@ class logserv():
                         req = urllib2.Request(
                             centralServer + 'getList?username=' + self.username + '&json_format=1')
                         newPeerList.extend(json.loads(
-                            urllib2.urlopen(req).read()).values())
+                            urllib2.urlopen(req, timeout=2).read()).values())
                 somelist = [x for x in newPeerList if (
                     int(x['stamp']) + 120 > int(time.time()))]
                 global peerList
@@ -177,14 +177,13 @@ class logserv():
             pass
 
     def peerlist_thread(self):
-        logserv.getList_API_call(self)
         thread.start_new_thread(logserv.peerlist_timer, (self, ))
 
     def peerlist_timer(self):
         starttime = time.time()
         while True:
-            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
             logserv.getList_API_call(self)
+            time.sleep(60.0 - ((time.time() - starttime) % 60.0))
 
     def getPeerStatus(self):
         for peer in peerList:
@@ -202,13 +201,12 @@ class logserv():
                 payload = json.dumps(payload)
                 req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                     peer['port']) + '/getStatus', payload, {'Content-Type': 'application/json'})
-                data = json.loads(urllib2.urlopen(req).read())
+                data = json.loads(urllib2.urlopen(req, timeout=1).read())
                 db.updateUserStatus(peer['username'], data['status'])
             except:
                 db.updateUserStatus(peer['username'], 'Offline')
 
     def peerstatus_thread(self):
-        logserv.getList_API_call(self)
         thread.start_new_thread(logserv.peerstatus_timer, (self, ))
 
     def peerstatus_timer(self):
@@ -239,7 +237,7 @@ class logserv():
                     payload = json.dumps(payload)
                     req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                         peer['port']) + '/getProfile', payload, {'Content-Type': 'application/json'})
-                    data = json.loads(urllib2.urlopen(req).read())
+                    data = json.loads(urllib2.urlopen(req, timeout=2).read())
                     data['username'] = peer['username']
                     messageProcess.unprocessProf(data, listLoggedInUsers[0])
                     db.updateUserProfileA(data)

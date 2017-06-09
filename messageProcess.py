@@ -101,7 +101,7 @@ def process(data, peer):
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
         respdata = urllib2.urlopen(
-            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI', timeout=1).read()
         if 'crypt' in respdata:
             if 'ash' in respdata:
                 supported = respdata.split("\n")
@@ -224,7 +224,7 @@ def processProf(data, peer):
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
         respdata = urllib2.urlopen(
-            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port']) + '/listAPI').read()
+            'http://' + unicode(peer['ip']) + ':' + unicode(peer['port'], timeout=1) + '/listAPI').read()
         if 'crypt' in respdata:
             if 'ash' in respdata:
                 supported = respdata.split("\n")

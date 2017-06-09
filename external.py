@@ -207,7 +207,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                             payload = json.dumps(stuff)
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                 peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
-                            response = urllib2.urlopen(req).read()
+                            response = urllib2.urlopen(req, timeout=2).read()
                             db.updateMessageStatus(message, 'DELIVERED')
                 else:
                     data = message
@@ -217,7 +217,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                             try:
                                 req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                     peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
-                                response = urllib2.urlopen(req).read()
+                                response = urllib2.urlopen(req, timeout=2).read()
                                 db.updateMessageStatus(message, 'DELIVERED')
                             except:
                                 pass
