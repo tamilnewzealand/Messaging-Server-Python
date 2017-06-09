@@ -47,7 +47,7 @@ def unprocess(data, listLoggedInUsers):
 
     if 'stamp' not in data:
         data['stamp'] = int(time.time())
-    if int(data['stamp']) + 31536000 < int(time.time()):
+    if int(float(data['stamp'])) + 31536000 < int(time.time()):
         data['stamp'] = int(time.time())
     if 'markdown' not in data:
         data['markdown'] = 0

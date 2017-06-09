@@ -132,10 +132,10 @@ def updateUserHash(username, hashed):
             "SELECT * FROM usernames WHERE username='{a}'".format(a=username))
         stuff = c.fetchall()
         if stuff == []:
-            c.execute("INSERT INTO usernames (username, hash) VALUES ('{a}', '{b}')".format(
+            c.execute("INSERT INTO usernames (username, hash, tfa) VALUES ('{a}', '{b}', 'on')".format(
                 a=username, b=hashed))
         else:
-            c.execute("UPDATE usernames SET hash='{b}', tfa='on' WHERE username='{a}'".format(
+            c.execute("UPDATE usernames SET hash='{b}' WHERE username='{a}'".format(
                 a=username, b=hashed))
         closeDB(conn, c)
     except:
