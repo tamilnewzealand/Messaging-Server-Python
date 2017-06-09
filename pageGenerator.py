@@ -17,7 +17,7 @@ class pageGenerator(object):
     @cherrypy.expose
     def logout(self):
         if 'userdata' in cherrypy.session:
-            logserv.logserv.logoff_API_call(cherrypy.session['userdata'])
+            logserv.logserv.logoffAPICall(cherrypy.session['userdata'])
             thisUser = None
             for user in logserv.listLoggedInUsers:
                 if user['username'] == cherrypy.session['userdata'].username:

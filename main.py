@@ -16,10 +16,8 @@ thread.start_new_thread(access_control.ac_timer, ('0', ))
 
 # Called when closing down node, calls logoff on every logged in node.
 def stop():
-    if cherrypy.session['userdata'] is not None:
-        logserv.logserv.logoff_API_call(cherrypy.session['userdata'])
-        del cherrypy.session['userdata']
-        del logserv.listLoggedInUsers
+    logserv.logserv.logoffEveryone(logserv.listLoggedInUsers)
+    del logserv.listLoggedInUsers
 
 
 class internal(internalJSON.internalJSON, internalAPI.internalAPI):

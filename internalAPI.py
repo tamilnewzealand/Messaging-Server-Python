@@ -22,19 +22,15 @@ class internalAPI(object):
     def login_check(self, username, password):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
         cherrypy.session['userdata'] = logserv.logserv(username, hashed)
-        logserv.logserv.reporter_thread(cherrypy.session['userdata'])
+        logserv.logserv.reporterThread(cherrypy.session['userdata'])
         if cherrypy.session['userdata'].tfa:
             raise cherrypy.HTTPRedirect("tfa.html")
         if cherrypy.session['userdata'].status:
-            newUser = {'username': cherrypy.session['userdata'].username, 'rsakey': cherrypy.session[
-                'userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
+            newUser = {'username': cherrypy.session['userdata'].username, 'hashed': cherrypy.session['userdata'].hashed, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             logserv.listLoggedInUsers.append(newUser)
             if len(logserv.listLoggedInUsers) == 1:
-                logserv.logserv.peerlist_thread(cherrypy.session['userdata'])
-                logserv.logserv.profile_thread(cherrypy.session['userdata'])
-                logserv.logserv.retrieve_messages_thread(
-                    cherrypy.session['userdata'])
-                logserv.logserv.peerstatus_thread(cherrypy.session['userdata'])
+                logserv.logserv.peerListThread(cherrypy.session['userdata'])
+                logserv.logserv.daemonInit(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
 
@@ -48,24 +44,13 @@ class internalAPI(object):
                 'userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             logserv.listLoggedInUsers.append(newUser)
             if len(logserv.listLoggedInUsers) == 1:
-                logserv.logserv.profile_thread(cherrypy.session['userdata'])
-                logserv.logserv.peerlist_thread(cherrypy.session['userdata'])
+                logserv.logserv.peerListThread(cherrypy.session['userdata'])
+                logserv.logserv.daemonInit(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
     
     @staticmethod
-    def updateEventStatusDaemon(userdata, name, newStatus):
-        data = {'attendance': '0'}
-        if newStatus == 'Not Going':
-            data['attendance'] = '0'
-        if newStatus == 'Going':
-            data['attendance'] = '1'
-        if newStatus == 'Maybe':
-            data['attendance'] = '2'
-        data['sender'] = name.split('%27')[1]
-        data['event_name'] = name.split('%27')[3]
-        data['start_time'] = name.split('%27')[5]
-        data['event_name'] = urllib2.unquote(data['event_name'])
+    def updateEventStatusDaemon(userdata, data):
         db.updateEventStatus(
             data['attendance'], data['sender'], data['event_name'], data['start_time'])
         for peer in logserv.peerList:
@@ -91,7 +76,19 @@ class internalAPI(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
-            thread.start_new_thread(internalAPI.updateEventStatusDaemon, (cherrypy.session['userdata'], cherrypy.serving.request.headers['Referer'], newStatus))            
+            data = {'attendance': '0'}
+            name = cherrypy.serving.request.headers['Referer']
+            if newStatus == 'Not Going':
+                data['attendance'] = '0'
+            if newStatus == 'Going':
+                data['attendance'] = '1'
+            if newStatus == 'Maybe':
+                data['attendance'] = '2'
+            data['sender'] = name.split('%27')[1]
+            data['event_name'] = name.split('%27')[3]
+            data['start_time'] = name.split('%27')[5]
+            data['event_name'] = urllib2.unquote(data['event_name'])
+            thread.start_new_thread(internalAPI.updateEventStatusDaemon, (cherrypy.session['userdata'], data))            
             raise cherrypy.HTTPRedirect(
                 "event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
         else:
@@ -100,13 +97,11 @@ class internalAPI(object):
     @staticmethod
     def processEventDaemon(userdata, destinations, event_name, start_time, end_time, event_description, event_location, event_picture):
         destinations = destinations.split(',')
-        start_time = time.mktime(datetime.datetime.strptime(
-            start_time, "%Y-%m-%dT%H:%M").timetuple())
         end_time = time.mktime(datetime.datetime.strptime(
             end_time, "%Y-%m-%dT%H:%M").timetuple())
         for destination in destinations:
             data = {'sender': userdata.username, 'destination': destination, 'event_name': event_name, 'event_description': event_description,
-                    'event_location': event_location, 'event_picture': event_picture, 'start_time': start_time, 'end_time': end_time}
+                    'event_location': event_location, 'event_picture': event_picture, 'start_time': start_time, 'end_time': end_time, 'markdown': '1'}
             packet = data
             for peer in logserv.peerList:
                 if peer['username'] == packet['sender']:
@@ -130,9 +125,10 @@ class internalAPI(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
+            start_time = time.mktime(datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M").timetuple())
             thread.start_new_thread(internalAPI.processEventDaemon, (cherrypy.session['userdata'], destinations, event_name, start_time, end_time, event_description, event_location, event_picture))
             raise cherrypy.HTTPRedirect(
-                "event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
+                "event?sender='" + cherrypy.session['userdata'].username + "'&name='" + event_name + "'&start_time='" + start_time + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
 

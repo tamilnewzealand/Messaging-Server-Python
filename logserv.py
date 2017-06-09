@@ -35,7 +35,7 @@ class logserv():
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
 
-    def first_report_API_call(self):
+    def getIP(self):
         data = json.loads(urllib2.urlopen("http://ip.jsontest.com/").read())
         self.ip = data["ip"]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,30 +53,8 @@ class logserv():
             self.ip = localip
         else:
             self.location = '2'
-        try:
-            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(
-                self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
-            response = urllib2.urlopen(req, timeout=2).read()
-            self.online = True
-        except:
-            if db.checkUserHash(self.username, self.hashed):
-                response = u'0, Server offline but user verified'
-                self.online = False
-            else:
-                response = u'2, Unauthenticated User'
-        print("Response is: " + str(response))
-        if '0, ' in str(response):
-            db.updateUserHash(self.username, self.hashed)
-            if db.getUserData(self.username)[0]['tfa'] == 'on':
-                self.status = False
-                self.tfa = True
-                self.seccode = tfa.tfainit(self.username)
-            else:
-                self.status = True
-        else:
-            self.status = False
 
-    def report_API_call(self):
+    def reportAPICall(self):
         try:
             req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(
                 self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
@@ -101,39 +79,37 @@ class logserv():
                 self.online = False
             else:
                 response = u'2, Unauthenticated User'
-        print("Response is: " + str(response))
         if '0, ' in str(response):
             self.status = True
         else:
             self.status = False
 
-    def reporter_thread(self):
-        logserv.first_report_API_call(self)
-        thread.start_new_thread(logserv.reporter_timer, (self, ))
-
-    def reporter_timer(self):
+    def reporterTimer(self):
         starttime = time.time()
-        while True:
+        while not self.Kill:
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
-            logserv.report_API_call(self)
-
-    def retrieve_messages_thread(self):
-        thread.start_new_thread(logserv.retrieve_messages, (self, ))
-
-    def retrieve_messages(self):
-        for peer in peerList:
-            data = {'requestor': self.username}
-            payload = json.dumps(data)
-            try:
-                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
-                    peer['port']) + '/retrieveMessages', payload, {'Content-Type': 'application/json'})
-                response = urllib2.urlopen(req).read()
-            except:
-                pass
+            logserv.reportAPICall(self)
         thread.exit()
-        return 0
 
-    def logoff_API_call(self):
+    def reporterThread(self):
+        logserv.getIP(self)
+        logserv.reportAPICall(self)
+        if self.status:
+            db.updateUserHash(self.username, self.hashed)
+            if db.getUserData(self.username)[0]['tfa'] == 'on':
+                self.status = False
+                self.tfa = True
+                self.seccode = tfa.tfainit(self.username)
+        thread.start_new_thread(logserv.reporterTimer, (self, ))
+
+    @staticmethod
+    def logoffEveryone(listLogInUsers):
+        for user in listLogInUsers:
+            req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(
+                user['username']) + '&password=' + self.encrypt(user['hashed']) + '&enc=1')
+            response = urllib2.urlopen(req, timeout=2).read()
+
+    def logoffAPICall(self):
         try:
             if self.online:
                 req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(
@@ -142,83 +118,48 @@ class logserv():
                 print("Response is: " + str(response))
                 if '0, ' in str(response):
                     self.status = False
+                    self.Kill = True
                 else:
                     self.status = True
         except:
             pass
 
-    def getList_API_call(self):
-        try:
-            if self.online:
-                req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(
-                    self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
-                response = urllib2.urlopen(req, timeout=2).read()
-                global peerList
-                peerList = json.loads(response).values()
-                for peer in peerList:
-                    if 'publicKey' not in peer:
-                        peer['publicKey'] = ''
-                    db.updateUserProfileB(
-                        peer['username'], peer['ip'], peer['location'], peer['lastLogin'], peer['port'], peer['publicKey'])
-            else:
-                newPeerList = peerList
-                for peer in peerList:
-                    if peer['ip'] != self.ip:
-                        req = urllib2.Request(
-                            centralServer + 'getList?username=' + self.username + '&json_format=1')
-                        newPeerList.extend(json.loads(
-                            urllib2.urlopen(req, timeout=2).read()).values())
-                somelist = [x for x in newPeerList if (
-                    int(x['stamp']) + 120 > int(time.time()))]
-                global peerList
-                peerList = [dict(tupleized) for tupleized in set(
-                    tuple(item.items()) for item in somelist)]
-        except:
-            pass
-
-    def peerlist_thread(self):
-        thread.start_new_thread(logserv.peerlist_timer, (self, ))
-
-    def peerlist_timer(self):
+    def getPeerList(self):
         starttime = time.time()
         while True:
-            logserv.getList_API_call(self)
+            try:
+                if self.online:
+                    req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(
+                        self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
+                    response = urllib2.urlopen(req, timeout=2).read()
+                    global peerList
+                    peerList = json.loads(response).values()
+                    for peer in peerList:
+                        if 'publicKey' not in peer:
+                            peer['publicKey'] = ''
+                        db.updateUserProfileB(
+                            peer['username'], peer['ip'], peer['location'], peer['lastLogin'], peer['port'], peer['publicKey'])
+                else:
+                    newPeerList = peerList
+                    for peer in peerList:
+                        if peer['ip'] != self.ip:
+                            req = urllib2.Request(
+                                centralServer + 'getList?username=' + self.username + '&json_format=1')
+                            newPeerList.extend(json.loads(
+                                urllib2.urlopen(req, timeout=2).read()).values())
+                    somelist = [x for x in newPeerList if (
+                        int(x['stamp']) + 120 > int(time.time()))]
+                    global peerList
+                    peerList = [dict(tupleized) for tupleized in set(
+                        tuple(item.items()) for item in somelist)]
+            except:
+                pass
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
 
-    def getPeerStatus(self):
-        for peer in peerList:
-            if peer['ip'] == self.ip:
-                db.updateUserStatus(peer['username'], 'Online')
-                continue
-            elif peer['location'] == '2':
-                pass
-            elif peer['location'] == self.location:
-                pass
-            else:
-                continue
-            try:
-                payload = {'profile_username': peer['username']}
-                payload = json.dumps(payload)
-                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
-                    peer['port']) + '/getStatus', payload, {'Content-Type': 'application/json'})
-                data = json.loads(urllib2.urlopen(req, timeout=1).read())
-                db.updateUserStatus(peer['username'], data['status'])
-            except:
-                db.updateUserStatus(peer['username'], 'Offline')
+    def peerListThread(self):
+        thread.start_new_thread(logserv.getPeerList, (self, ))
 
-    def peerstatus_thread(self):
-        thread.start_new_thread(logserv.peerstatus_timer, (self, ))
-
-    def peerstatus_timer(self):
-        starttime = time.time()
-        while True:
-            time.sleep(30.0 - ((time.time() - starttime) % 30.0))
-            logserv.getPeerStatus(self)
-
-    def profile_thread(self):
-        thread.start_new_thread(logserv.profile_timer, (self, ))
-
-    def profile_timer(self):
+    def getProfile(self):
         starttime = time.time()
         while True:
             data = None
@@ -245,10 +186,56 @@ class logserv():
                     pass
             time.sleep(300.0 - ((time.time() - starttime) % 300.0))
 
+    def retrieveMessages(self):
+        for peer in peerList:
+            data = {'requestor': self.username}
+            payload = json.dumps(data)
+            try:
+                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
+                    peer['port']) + '/retrieveMessages', payload, {'Content-Type': 'application/json'})
+                response = urllib2.urlopen(req).read()
+            except:
+                pass
+        thread.exit()
+
+    def getPeerStatus(self):
+        starttime = time.time()
+        while True:
+            time.sleep(30.0 - ((time.time() - starttime) % 30.0))
+            for peer in peerList:
+                if peer['ip'] == self.ip:
+                    db.updateUserStatus(peer['username'], 'Online')
+                    continue
+                elif peer['location'] == '2':
+                    pass
+                elif peer['location'] == self.location:
+                    pass
+                else:
+                    continue
+                try:
+                    payload = {'profile_username': peer['username']}
+                    payload = json.dumps(payload)
+                    req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
+                        peer['port']) + '/getStatus', payload, {'Content-Type': 'application/json'})
+                    data = json.loads(urllib2.urlopen(req, timeout=1).read())
+                    db.updateUserStatus(peer['username'], data['status'])
+                except:
+                    db.updateUserStatus(peer['username'], 'Offline')
+    
+    def daemonQueuer(self):
+        time.sleep(15.0)
+        thread.start_new_thread(logserv.getProfile, (self, ))
+        thread.start_new_thread(logserv.retrieveMessages, (self, ))
+        thread.start_new_thread(logserv.getPeerStatus, (self, ))
+
+    def daemonInit(self):
+        thread.start_new_thread(logserv.daemonQueuer, (self, ))
+
     def __init__(self, username, hashed):
         self.username = username
         self.hashed = hashed
         self.port = '10008'
+        self.Kill = False
         self.ip = ''
         self.currrentChat = ''
         self.status = False
