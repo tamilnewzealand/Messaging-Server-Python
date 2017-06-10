@@ -57,7 +57,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                 data = messageProcess.unprocess(
                     data, logserv.listLoggedInUsers)
             except:
-                return ('1: Mising Compulsory Field')
+                return ('1: Use my new private key already...')
             if isinstance(data, basestring):
                 return data
 
@@ -174,7 +174,7 @@ Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
                     os.path.join(
                         'downloads', data['filename']) + '\" type=\"' + content_type + '\"></video>'
             payload = {'sender': data['sender'], 'destination': data['destination'], 'message': text,
-                       'stamp': data['stamp'], 'encryption': 2, 'hashing': 0, 'hash': '', 'status': 'IN TRANSIT', 'markdown': 0}
+                       'stamp': data['stamp'], 'encryption': data['encryption'], 'hashing': data['hashing'], 'hash': data['hash'], 'status': 'IN TRANSIT', 'markdown': 0}
             for user in logserv.listLoggedInUsers:
                 if user['username'] == payload['destination']:
                     payload['status'] = 'DELIVERED'

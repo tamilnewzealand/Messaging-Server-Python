@@ -150,6 +150,9 @@ def process(data, peer):
     if data['hashing'] == '8':
         data['hash'] = scrypt.hash(text + salt)
 
+    hashing = data['hashing']
+    hashe = data['hash']
+
     if '1' in supported[-2]:
         data['encryption'] = '1'
     if '2' in supported[-2]:
@@ -184,7 +187,7 @@ def process(data, peer):
             else:
                 data[thing] = Ciphers.AESCipher.encrypt(data[thing], key)
 
-    return data
+    return (data, hashing, hashe)
 
 
 def unprocessProf(data, user):

@@ -25,15 +25,18 @@ def randomword(length):
     return ''.join(random.choice(string.lowercase) for i in range(length))
 
 
-class logserv():
-    def _pad(self, s):
-        return s + (self.bs - len(s) % self.bs) * chr(32)
+def _pad(s):
+    return s + (16 - len(s) % 16) * chr(32)
 
-    def encrypt(self, raw):
-        raw = self._pad(raw)
-        iv = Random.new().read(self.bs)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
+
+def encrypt(raw):
+    raw = _pad(raw)
+    iv = Random.new().read(16)
+    cipher = AES.new('150ecd12d550d05ad83f18328e536f53', AES.MODE_CBC, iv)
+    return urllib.quote(binascii.hexlify(iv + cipher.encrypt(raw)), safe='')
+
+
+class logserv():
 
     def getIP(self):
         data = json.loads(urllib2.urlopen("http://ip.jsontest.com/").read())
@@ -56,8 +59,8 @@ class logserv():
 
     def reportAPICall(self):
         try:
-            req = urllib2.Request(centralServer + 'report?username=' + self.encrypt(self.username) + '&password=' + self.encrypt(self.hashed) + '&ip=' + self.encrypt(
-                self.ip) + '&port=' + self.encrypt(self.port) + '&location=' + self.encrypt(self.location) + '&pubkey=' + self.encrypt(self.pubkey) + '&enc=1')
+            req = urllib2.Request(centralServer + 'report?username=' + encrypt(self.username) + '&password=' + encrypt(self.hashed) + '&ip=' + encrypt(
+                self.ip) + '&port=' + encrypt(self.port) + '&location=' + encrypt(self.location) + '&pubkey=' + encrypt(self.pubkey) + '&enc=1')
             response = urllib2.urlopen(req, timeout=2).read()
             self.online = True
         except:
@@ -105,15 +108,15 @@ class logserv():
     @staticmethod
     def logoffEveryone(listLogInUsers):
         for user in listLogInUsers:
-            req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(
-                user['username']) + '&password=' + self.encrypt(user['hashed']) + '&enc=1')
+            req = urllib2.Request(centralServer + 'logoff?username=' + encrypt(
+                user['username']) + '&password=' + encrypt(user['hashed']) + '&enc=1')
             response = urllib2.urlopen(req, timeout=2).read()
 
     def logoffAPICall(self):
         try:
             if self.online:
-                req = urllib2.Request(centralServer + 'logoff?username=' + self.encrypt(
-                    self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1')
+                req = urllib2.Request(centralServer + 'logoff?username=' + encrypt(
+                    self.username) + '&password=' + encrypt(self.hashed) + '&enc=1')
                 response = urllib2.urlopen(req, timeout=2).read()
                 print("Response is: " + str(response))
                 if '0, ' in str(response):
@@ -129,8 +132,8 @@ class logserv():
         while True:
             try:
                 if self.online:
-                    req = urllib2.Request(centralServer + 'getList?username=' + self.encrypt(
-                        self.username) + '&password=' + self.encrypt(self.hashed) + '&enc=1&json=' + self.encrypt('1'))
+                    req = urllib2.Request(centralServer + 'getList?username=' + encrypt(
+                        self.username) + '&password=' + encrypt(self.hashed) + '&enc=1&json=' + encrypt('1'))
                     response = urllib2.urlopen(req, timeout=2).read()
                     global peerList
                     peerList = json.loads(response).values()
@@ -243,9 +246,7 @@ class logserv():
         self.seccode = ''
         self.online = True
         self.location = '2'
-        self.bs = 16
         self.currentEvent = None
-        self.key = '150ecd12d550d05ad83f18328e536f53'
         self.rsakey = Ciphers.RSA1024Cipher.generatekeys()
         self.pubkey = binascii.hexlify(
             self.rsakey.publickey().exportKey('DER'))

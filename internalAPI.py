@@ -192,8 +192,6 @@ class internalAPI(object):
             stuff = {'sender': userdata.username, 'destination': userdata.currentChat, 'file': attachments,
                         'content_type': content_type, 'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': '', 'hashing': '0'}
             files = True
-        if not files:
-            db.addNewMessage(data)
         offline = True
         for peer in logserv.peerList:
             if userdata.currentChat == peer['username']:
@@ -201,7 +199,7 @@ class internalAPI(object):
         for peer in logserv.peerList:
             if not offline:
                 if userdata.currentChat == peer['username']:
-                    sentMessage = data
+                    sentMessage = data.copy()
                     if userdata.currentChat == userdata.username:
                         peer['ip'] = 'localhost'
                     elif peer['location'] == '2':
@@ -210,21 +208,23 @@ class internalAPI(object):
                         pass
                     else:
                         thread.exit()
-                    if data['message'] is not '':
+                    if data['message'] is not u'':
                         try:
-                            data = messageProcess.process(data, peer)
+                            (data, hashing, hashe) = messageProcess.process(data, peer)
                             payload = json.dumps(data)
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                 peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
                             response = urllib2.urlopen(req, timeout=2).read()
+                            sentMessage['hash'] = hashe
+                            sentMessage['hashing'] = hashing
                             if '0: ' in response:
-                                db.updateMessageStatus(
-                                    sentMessage, 'DELIVERED')
+                                sentMessage['status'] = 'DELIVERED'
+                            db.addNewMessage(sentMessage)
                         except:
                             pass
                     if files:
-                        payload = messageProcess.process(stuff, peer)
-                        payload = json.dumps(payload)
+                        (data, hashing, hashe) = messageProcess.process(stuff, peer)
+                        payload = json.dumps(data)
                         try:
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                 peer['port']) + '/receiveFile', payload, {'Content-Type': 'application/json'})
@@ -232,6 +232,8 @@ class internalAPI(object):
                             if '0: ' in response:
                                 sentMessage['message'] = sentMessage['message'] + text
                                 sentMessage['status'] = 'DELIVERED'
+                            sentMessage['hash'] = hashe
+                            sentMessage['hashing'] = hashing
                             db.addNewMessage(sentMessage)
                         except:
                             pass
@@ -287,7 +289,7 @@ class internalAPI(object):
             int(time.time())), 'encryption': '0', 'hashing': '0', 'hash': ' '}
         for peer in logserv.peerList:
             if peer['username'] == destination:
-                data = messageProcess.process(data, peer)
+                (data, hashing, hashe) = messageProcess.process(data, peer)
                 if destination == cherrypy.session['userdata'].username:
                     peer['ip'] = 'localhost'
                 elif peer['location'] == '2':
