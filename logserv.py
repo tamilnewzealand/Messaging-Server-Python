@@ -191,6 +191,14 @@ class logserv():
 
     def retrieveMessages(self):
         for peer in peerList:
+            if peer['ip'] == self.ip:
+                continue
+            elif peer['location'] == '2':
+                pass
+            elif peer['location'] == self.location:
+                pass
+            else:
+                continue
             data = {'requestor': self.username}
             payload = json.dumps(data)
             try:
