@@ -42,14 +42,24 @@ peerList = None
 listLoggedInUsers = []
 
 
+"""
+    Generates a lowercase string of characters of a given length.
+""" 
 def randomword(length):
     return ''.join(random.choice(string.lowercase) for i in range(length))
 
 
+"""
+    Pads with spaces for rounding to the nearest block.
+"""
 def _pad(s):
     return s + (16 - len(s) % 16) * chr(32)
 
 
+"""
+    Encrypts the data using the hard coded AES key from
+    the login server protocol.
+"""
 def encrypt(raw):
     raw = _pad(raw)
     iv = Random.new().read(16)
@@ -59,6 +69,11 @@ def encrypt(raw):
 
 class logserv():
 
+    """
+        Gets external and internal IP and inteligentally
+        figures out current location and sets the appropriate
+        variables.
+    """
     def getIP(self):
         data = json.loads(urllib2.urlopen("http://ip.jsontest.com/").read())
         self.ip = data["ip"]
@@ -78,6 +93,11 @@ class logserv():
         else:
             self.location = '2'
 
+    """
+        Trys to make a report API call on the login server.
+        If this fails, then it directly reports to all peers
+        on the currently maintained local peer list.
+    """
     def reportAPICall(self):
         try:
             req = urllib2.Request(centralServer + 'report?username=' + encrypt(self.username) + '&password=' + encrypt(self.hashed) + '&ip=' + encrypt(
@@ -108,6 +128,11 @@ class logserv():
         else:
             self.status = False
 
+    """
+        Timer method calls the above function every
+        60 seconds. If the Kill flag has been set then it
+        kills the current reporting thread.
+    """
     def reporterTimer(self):
         starttime = time.time()
         while True:
@@ -117,7 +142,11 @@ class logserv():
             else:
                 logserv.reportAPICall(self)
         thread.exit()
-
+    
+    """
+        Makes the first report API call then starts the
+        reporterTimer in its own thread.
+    """
     def reporterThread(self):
         logserv.getIP(self)
         logserv.reportAPICall(self)
@@ -129,13 +158,25 @@ class logserv():
                 self.seccode = tfa.tfainit(self.username)
         thread.start_new_thread(logserv.reporterTimer, (self, ))
 
+    """
+        Logs off everyone in the currently logged into this
+        node list of users. This is in preparation of a node
+        being shut down.
+    """
     @staticmethod
     def logoffEveryone(listLogInUsers):
         for user in listLogInUsers:
             req = urllib2.Request(centralServer + 'logoff?username=' + encrypt(
                 user['username']) + '&password=' + encrypt(user['hashed']) + '&enc=1')
             response = urllib2.urlopen(req, timeout=2).read()
-
+    
+    """
+        Logs of the current user by making a logoff
+        API call to the server. Also sets the flag 
+        to kill the reporter thread for this user.
+        This is called when a user presses the Logout
+        button from their browser.
+    """
     def logoffAPICall(self):
         try:
             if self.online:
@@ -151,6 +192,12 @@ class logserv():
         except:
             pass
 
+    """
+        Gets the current peer list from the server. In the
+        case of server outage, a request for a peer list is
+        made to every peer in the local list and these lists
+        are merged into the locally maintained peer list.
+    """
     def getPeerList(self):
         starttime = time.time()
         while True:
@@ -182,10 +229,20 @@ class logserv():
             except:
                 pass
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
-
+    
+    """
+        Starts the getPeerList method in a seperate thread.
+    """
     def peerListThread(self):
         thread.start_new_thread(logserv.getPeerList, (self, ))
 
+    """
+        Loops through all the peers in the local peer list and
+        makes a getProfile API call on everyone of them. Exludes
+        calls to locations that are unreachable from the current 
+        location and to users on this node. This data is stored in
+        the database. Is timed to run once every five minutes.
+    """
     def getProfile(self):
         starttime = time.time()
         while True:
@@ -213,6 +270,12 @@ class logserv():
                     pass
             time.sleep(300.0 - ((time.time() - starttime) % 300.0))
 
+    """
+        Calls a retrieveMessage API call on everyone in
+        the local peer list. This method is executed once
+        at startup in its own thread. Only runs once at 
+        startup and then kills the thread.
+    """
     def retrieveMessages(self):
         for peer in peerList:
             if peer['ip'] == self.ip:
@@ -233,6 +296,13 @@ class logserv():
                 pass
         thread.exit()
 
+    """
+        Loops through all the peers in the local peer list and
+        makes a getStatus API call on everyone of them. Exludes
+        calls to locations that are unreachable from the current 
+        location and to users on this node. This data is stored in
+        the database. This is run every 30 seconds on a timer.
+    """
     def getPeerStatus(self):
         starttime = time.time()
         while True:
@@ -257,15 +327,28 @@ class logserv():
                 except:
                     db.updateUserStatus(peer['username'], 'Offline')
     
+    """
+        Waits for 15 seconds after startup and then 
+        starts all the above threads as background threads.
+    """
     def daemonQueuer(self):
         time.sleep(15.0)
         thread.start_new_thread(logserv.getProfile, (self, ))
         thread.start_new_thread(logserv.retrieveMessages, (self, ))
         thread.start_new_thread(logserv.getPeerStatus, (self, ))
-
+        thread.exit()
+    
+    """
+        Starts the above daemonQueuer in its own thread.
+    """
     def daemonInit(self):
         thread.start_new_thread(logserv.daemonQueuer, (self, ))
 
+    """
+        Initializes the logserv class for the user that
+        is logging in. Generates a new RSA 1024
+        public-private key pair for this session.
+    """
     def __init__(self, username, hashed):
         self.username = username
         self.hashed = hashed

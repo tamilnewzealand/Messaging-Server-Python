@@ -36,7 +36,11 @@ def initTable(c):
     c.execute("INSERT INTO userprofiles (username) VALUES ('" + data + "')")
     return c
 
-
+"""
+    Opens the database file ready for SQL operations.
+    If file doesn't exist, a new file with appropriate
+    tables are created.
+"""
 def openDB():
     if os.path.isfile('user_data.sqlite'):
         conn = sqlite3.connect('user_data.sqlite')
@@ -48,11 +52,20 @@ def openDB():
         c = initTable(c)
         return (conn, c)
 
-
+"""
+    Closes the connection to the data base file.
+"""
 def closeDB(conn, c):
     conn.commit()
     conn.close()
 
+"""
+    The following methods abstract particular read and
+    write operations to the database away from the rest 
+    of the codebase. Methods are named appropriately to
+    reflect the read / write operation which they make 
+    possible.
+"""
 
 def addNewMessage(data):
     (conn, c) = openDB()

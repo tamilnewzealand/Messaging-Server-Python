@@ -51,3 +51,4 @@ def tfainit(username):
     code = str(random.randrange(100000, 999999))
     sendemail(username, code)
     return code
+    

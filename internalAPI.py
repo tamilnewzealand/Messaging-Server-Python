@@ -37,6 +37,13 @@ import thread
 
 class internalAPI(object):
 
+    """
+        Initializes the backgrounds thread necessary for the user.
+        Hashes the password entered and stores this, if the user
+        is authenticated then the user is redirected to the home 
+        page, if two factor authentication, the user is redirected
+        to the tfa page.
+    """
     @cherrypy.expose
     def login_check(self, username, password):
         hashed = hashlib.sha256(password + "COMPSYS302-2017").hexdigest()
@@ -53,6 +60,12 @@ class internalAPI(object):
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
 
+    """
+        Initializes the backgrounds thread necessary for the user.
+        Hashes the password entered and stores this, if the user
+        is authenticated then the user is redirected to the home 
+        page.
+    """
     @cherrypy.expose
     def tfa_check(self, seccode):
         if int(seccode) == int(cherrypy.session['userdata'].seccode):
@@ -68,6 +81,11 @@ class internalAPI(object):
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
     
+    """
+        Makes an /acknowledgeEvent for the parameters passed
+        into the method. Called from the method updateEventStatus
+        as a new daemon thread.
+    """
     @staticmethod
     def updateEventStatusDaemon(userdata, data):
         db.updateEventStatus(
@@ -90,6 +108,11 @@ class internalAPI(object):
                 except:
                     pass
 
+    """
+        Called from html forms by user, transfers the data
+        to updateEventStatusDaemon method and redirects the
+        user back to where they were to not hinder the user.
+    """
     @cherrypy.expose
     def updateEventStatus(self, newStatus):
         if 'userdata' not in cherrypy.session:
@@ -112,7 +135,11 @@ class internalAPI(object):
                 "event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
-        
+    
+    """
+        Makes an /receiveEvent for the parameters passed into the method. 
+        Called from the method processEvent as a new daemon thread.
+    """
     @staticmethod
     def processEventDaemon(userdata, destinations, event_name, start_time, end_time, event_description, event_location, event_picture):
         destinations = destinations.split(',')
@@ -123,7 +150,7 @@ class internalAPI(object):
                     'event_location': event_location, 'event_picture': event_picture, 'start_time': start_time, 'end_time': end_time, 'markdown': '1'}
             packet = data
             for peer in logserv.peerList:
-                if peer['username'] == packet['sender']:
+                if peer['username'] == packet['destination']:
                     packet = messageProcess.processProf(packet, peer)
                     if peer['ip'] == userdata.ip:
                         continue
@@ -139,6 +166,11 @@ class internalAPI(object):
                     response = urllib2.urlopen(req, timeout=2).read()
             db.addNewEvent(data)
 
+    """
+        Called from html forms by user, transfers the data
+        to processEventDaemon method and redirects the user
+        back to where they were to not hinder the user.
+    """
     @cherrypy.expose
     def processEvent(self, destinations, event_name, start_time, end_time, event_description='', event_location='', event_picture=''):
         if 'userdata' not in cherrypy.session:
@@ -147,10 +179,15 @@ class internalAPI(object):
             start_time = time.mktime(datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M").timetuple())
             thread.start_new_thread(internalAPI.processEventDaemon, (cherrypy.session['userdata'], destinations, event_name, start_time, end_time, event_description, event_location, event_picture))
             raise cherrypy.HTTPRedirect(
-                "event?sender='" + cherrypy.session['userdata'].username + "'&name='" + event_name + "'&start_time='" + start_time + "'")
+                "event?sender='" + cherrypy.session['userdata'].username + "'&name='" + event_name + "'&start_time='" + str(start_time) + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Called from html forms by user, data is updated
+        in the database and the user is redirected to the
+        home page.
+    """
     @cherrypy.expose
     def updateProfile(self, picture, description, location, position, fullname, blacklist, tfa='off'):
         db.updateUserData(cherrypy.session['userdata'].username,
@@ -162,6 +199,11 @@ class internalAPI(object):
             raise cherrypy.HTTPRedirect(
                 "chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
 
+    """
+        Called from html forms by user, the current status
+        is updated in memory and the user is redirected to
+        the home page.
+    """
     @cherrypy.expose
     def updateStatus(self, newStatus):
         if 'userdata' not in cherrypy.session:
@@ -178,6 +220,13 @@ class internalAPI(object):
         else:
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Makes an /receiveMessage and/or /receiveFile call for the parameters
+        passed into the method. If the target user is offline, then all online
+        peers are passed a copy. Sends both a message and/or a file depending
+        on what the user has entered. Messages sent to peers in inaccessible
+        locations are dropped.
+    """
     @staticmethod
     def sendMessageDaemon(message, attachments, userdata):
         data = {'sender': unicode(userdata.username), 'destination': unicode(userdata.currentChat), 'message': unicode(
@@ -290,6 +339,11 @@ class internalAPI(object):
                     db.addNewMessage(data)
         thread.exit()
 
+    """
+        Called from html forms by user, transfers the data
+        to sendMessageDaemon method and redirects the user
+        back to where they were to not hinder the user.
+    """
     @cherrypy.expose
     def sendMessage(self, message, attachments):
         if 'userdata' not in cherrypy.session:
@@ -301,6 +355,14 @@ class internalAPI(object):
         else:
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Makes a handshake with the destination client
+        as passed into the method. The developer sees
+        no useful place to call this method, as such
+        this method is functionally complete according
+        to protocol specifications, but is not called
+        by the application at any point.
+    """
     @cherrypy.expose
     def makeHandshake(self, destination):
         text = logserv.randomword(512)
