@@ -29,19 +29,25 @@ accessList = []
     Retrieves the current blacklist that has been
     stored to a file and returns it as a list.
 """
+
+
 def getBlackList():
     blacklist = open("blacklist.txt", "r")
     lines = blacklist.read().split(',')
     blacklist.close()
     return lines
 
+
 """
     Saves a new black list to the text file.
 """
+
+
 def setBlackList(listings):
     blacklist = open("blacklist.txt", "w")
     blacklist.write(listings)
     blacklist.close()
+
 
 """
     Main access control function that is called by 
@@ -52,6 +58,8 @@ def setBlackList(listings):
     100 times a minute, that IP is ratelimited till the
     next minute.
 """
+
+
 def access_control():
     ip = cherrypy.request.headers["Remote-Addr"]
     if ip in getBlackList():
@@ -61,11 +69,14 @@ def access_control():
         return False
     return True
 
+
 """
     Seperate thread that clears the rate limiting
     list every 60 seconds to reset the rate limiting
     feature.
 """
+
+
 def ac_timer(started):
     starttime = time.time()
     while True:

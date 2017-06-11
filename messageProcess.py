@@ -46,6 +46,8 @@ import urllib2
     Check hash of message according to the hashing parameter.
     Bleach all message strings to remove malicious content.
 """
+
+
 def unprocess(data, listLoggedInUsers):
     if 'encryption' not in data:
         data['encryption'] = 0
@@ -130,6 +132,7 @@ def unprocess(data, listLoggedInUsers):
 
     return str('7: Hash does not match')
 
+
 """
     Processes a message for sending.
 
@@ -146,8 +149,11 @@ def unprocess(data, listLoggedInUsers):
     response is not standard or is not available, a default listAPI is 
     used.
 """
+
+
 def process(data, peer):
-    supported = ['Available APIs: ', '/listAPI ', '/ping ', '/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]', '/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] ', 'Encryption: 0', 'Hashing: 0']
+    supported = ['Available APIs: ', '/listAPI ', '/ping ', '/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]',
+                 '/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] ', 'Encryption: 0', 'Hashing: 0']
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
@@ -208,7 +214,7 @@ def process(data, peer):
         data['encryption'] = '1'
     if '2' in supported[-2]:
         data['encryption'] = '2'
-    if '3' in supported[-2] and (len(data['message']) < 128) :
+    if '3' in supported[-2] and (len(data['message']) < 128):
         data['encryption'] = '3'
     if '4' in supported[-2]:
         data['encryption'] = '4'
@@ -240,6 +246,7 @@ def process(data, peer):
 
     return (data, hashing, hashe)
 
+
 """
     Unprocesses a recieved message.
 
@@ -251,6 +258,8 @@ def process(data, peer):
 
     Decrypts messages according to the encryption parameter.
 """
+
+
 def unprocessProf(data, user):
     if 'encryption' not in data:
         data['encryption'] = 0
@@ -281,6 +290,7 @@ def unprocessProf(data, user):
                     data[thing], data['decryptionKey'])
     return data
 
+
 """
     Processes a message for sending.
 
@@ -295,6 +305,8 @@ def unprocessProf(data, user):
     is not standard or is not available, a default listAPI is 
     used.
 """
+
+
 def processProf(data, peer):
     supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
     try:

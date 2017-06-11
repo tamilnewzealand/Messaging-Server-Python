@@ -40,6 +40,8 @@ from cherrypy.lib.static import serve_fileobj
 """
     Returns the size of a base 64 string.
 """
+
+
 def sizeb64(b64string):
     return (len(b64string) * 3) / 4 - b64string.count('=', -2)
 
@@ -110,7 +112,7 @@ Hashing: 0 1 2 3 4 5 6 7 8""")
                 return ('1: Missing Compulsory Field')
         else:
             return ("11: Blacklisted or Rate Limited")
-    
+
     """
         This marks a sent message as seen in the database
         if the hash matches.
@@ -143,7 +145,7 @@ Hashing: 0 1 2 3 4 5 6 7 8""")
             return ('1: Missing Compulsory Field')
         else:
             return ("11: Blacklisted or Rate Limited")
-    
+
     """
         This API allows another client to confirm that a particular
         encryption standard is supported correctly by this client. 
@@ -178,7 +180,7 @@ Hashing: 0 1 2 3 4 5 6 7 8""")
             return {'error': u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது', 'message': data['message']}
         else:
             return ("11: Blacklisted or Rate Limited")
-    
+
     """
         This API allows another client to request information about 
         the user operating this client. It implies that the current
@@ -292,14 +294,15 @@ Hashing: 0 1 2 3 4 5 6 7 8""")
                             try:
                                 req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                     peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
-                                response = urllib2.urlopen(req, timeout=2).read()
+                                response = urllib2.urlopen(
+                                    req, timeout=2).read()
                                 db.updateMessageStatus(message, 'DELIVERED')
                             except:
                                 pass
             return (u'0: உரை வெற்றிகரமாகப் பெட்ட்ருகொண்டது')
         else:
             return ("11: Blacklisted or Rate Limited")
-    
+
     """
         This API allows another client to request information about
         the current status of the user operating this client. The valid values

@@ -38,6 +38,8 @@ thread.start_new_thread(access_control.ac_timer, ('0', ))
 """
     Called when closing down node, calls logoff on every logged in node.
 """
+
+
 def stop():
     logserv.logserv.logoffEveryone(logserv.listLoggedInUsers)
     del logserv.listLoggedInUsers
@@ -50,11 +52,14 @@ class internal(internalJSON.internalJSON, internalAPI.internalAPI):
 class external(pageGenerator.pageGenerator, external.external):
     pass
 
+
 """
     Main class which contains all the exposed APIs,
     inherits from multiple classes which contain the necessary
     methods sorted by task.
 """
+
+
 class MainClass(internal, external):
 
     @cherrypy.expose

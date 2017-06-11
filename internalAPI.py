@@ -52,7 +52,8 @@ class internalAPI(object):
         if cherrypy.session['userdata'].tfa:
             raise cherrypy.HTTPRedirect("tfa.html")
         if cherrypy.session['userdata'].status:
-            newUser = {'username': cherrypy.session['userdata'].username, 'hashed': cherrypy.session['userdata'].hashed, 'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
+            newUser = {'username': cherrypy.session['userdata'].username, 'hashed': cherrypy.session['userdata'].hashed,
+                       'rsakey': cherrypy.session['userdata'].rsakey, 'pubkey': cherrypy.session['userdata'].pubkey, 'status': 'Online'}
             logserv.listLoggedInUsers.append(newUser)
             if len(logserv.listLoggedInUsers) == 1:
                 logserv.logserv.peerListThread(cherrypy.session['userdata'])
@@ -80,7 +81,7 @@ class internalAPI(object):
                 logserv.logserv.daemonInit(cherrypy.session['userdata'])
             raise cherrypy.HTTPRedirect("home")
         raise cherrypy.HTTPRedirect("login")
-    
+
     """
         Makes an /acknowledgeEvent for the parameters passed
         into the method. Called from the method updateEventStatus
@@ -130,12 +131,13 @@ class internalAPI(object):
             data['event_name'] = name.split('%27')[3]
             data['start_time'] = name.split('%27')[5]
             data['event_name'] = urllib2.unquote(data['event_name'])
-            thread.start_new_thread(internalAPI.updateEventStatusDaemon, (cherrypy.session['userdata'], data))            
+            thread.start_new_thread(
+                internalAPI.updateEventStatusDaemon, (cherrypy.session['userdata'], data))
             raise cherrypy.HTTPRedirect(
                 "event?sender='" + data['sender'] + "'&name='" + data['event_name'] + "'&start_time='" + data['start_time'] + "'")
         else:
             raise cherrypy.HTTPRedirect("login")
-    
+
     """
         Makes an /receiveEvent for the parameters passed into the method. 
         Called from the method processEvent as a new daemon thread.
@@ -176,8 +178,10 @@ class internalAPI(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
-            start_time = time.mktime(datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M").timetuple())
-            thread.start_new_thread(internalAPI.processEventDaemon, (cherrypy.session['userdata'], destinations, event_name, start_time, end_time, event_description, event_location, event_picture))
+            start_time = time.mktime(datetime.datetime.strptime(
+                start_time, "%Y-%m-%dT%H:%M").timetuple())
+            thread.start_new_thread(internalAPI.processEventDaemon, (
+                cherrypy.session['userdata'], destinations, event_name, start_time, end_time, event_description, event_location, event_picture))
             raise cherrypy.HTTPRedirect(
                 "event?sender='" + cherrypy.session['userdata'].username + "'&name='" + event_name + "'&start_time='" + str(start_time) + "'")
         else:
@@ -258,7 +262,7 @@ class internalAPI(object):
                     os.path.join('downloads', filname) + \
                     '\" type=\"' + content_type + '\"></video>'
             stuff = {'sender': userdata.username, 'destination': userdata.currentChat, 'file': attachments,
-                        'content_type': content_type, 'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': '', 'hashing': '0'}
+                     'content_type': content_type, 'filename': filname, 'stamp': unicode(int(time.time())), 'encryption': '0', 'hash': '', 'hashing': '0'}
             files = True
         offline = True
         for peer in logserv.peerList:
@@ -278,7 +282,8 @@ class internalAPI(object):
                         thread.exit()
                     if data['message'] is not u'':
                         try:
-                            (data, hashing, hashe) = messageProcess.process(data, peer)
+                            (data, hashing, hashe) = messageProcess.process(
+                                data, peer)
                             payload = json.dumps(data)
                             req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
                                 peer['port']) + '/receiveMessage', payload, {'Content-Type': 'application/json'})
@@ -349,7 +354,8 @@ class internalAPI(object):
         if 'userdata' not in cherrypy.session:
             raise cherrypy.HTTPRedirect("login")
         if cherrypy.session['userdata'].status:
-            thread.start_new_thread(internalAPI.sendMessageDaemon, (message, attachments, cherrypy.session['userdata']))
+            thread.start_new_thread(
+                internalAPI.sendMessageDaemon, (message, attachments, cherrypy.session['userdata']))
             raise cherrypy.HTTPRedirect(
                 "chat?userID=\'" + cherrypy.session['userdata'].currentChat + "\'")
         else:

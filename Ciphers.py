@@ -30,14 +30,14 @@ from Crypto.PublicKey import RSA
 
 
 class AESCipher(object):
-    
+
     """
         Generates a new AES cipher key randomly.
     """
     @staticmethod
     def generateKeys():
         return binascii.hexlify(Random.new().read(16))
-    
+
     """
         Encrypts the message using the supplied AES key.
     """
@@ -64,7 +64,7 @@ class AESCipher(object):
     @staticmethod
     def _pad(s):
         return s + (16 - len(s) % 16) * chr(32)
-    
+
     """
         Pads the message with spaces.
     """

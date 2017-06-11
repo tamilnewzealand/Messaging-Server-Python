@@ -31,16 +31,20 @@ def initTable(c):
     c.execute("CREATE TABLE usernames (username STRING, fullname STRING, position STRING, description STRING, location STRING, picture STRING, hash STRING, tfa STRING)")
     c.execute("CREATE TABLE userprofiles (username STRING, ip STRING, location STRING, lastLogin STRING, port STRING, fullname STRING, position STRING, description STRING, picture STRING, publicKey STRING, status STRING)")
     c.execute("CREATE TABLE events (sender STRING, destination STRING, event_name STRING, event_description STRING, event_location STRING, event_picture STRING, start_time STRING, end_time STRING, markdown STRING, encryption STRING, status STRING)")
-    data = urllib2.urlopen("https://cs302.pythonanywhere.com/listUsers", timeout=5).read()
+    data = urllib2.urlopen(
+        "https://cs302.pythonanywhere.com/listUsers", timeout=5).read()
     data = data.replace(",", "'), ('")
     c.execute("INSERT INTO userprofiles (username) VALUES ('" + data + "')")
     return c
+
 
 """
     Opens the database file ready for SQL operations.
     If file doesn't exist, a new file with appropriate
     tables are created.
 """
+
+
 def openDB():
     if os.path.isfile('user_data.sqlite'):
         conn = sqlite3.connect('user_data.sqlite')
@@ -52,12 +56,16 @@ def openDB():
         c = initTable(c)
         return (conn, c)
 
+
 """
     Closes the connection to the data base file.
 """
+
+
 def closeDB(conn, c):
     conn.commit()
     conn.close()
+
 
 """
     The following methods abstract particular read and
@@ -66,6 +74,7 @@ def closeDB(conn, c):
     reflect the read / write operation which they make 
     possible.
 """
+
 
 def addNewMessage(data):
     (conn, c) = openDB()

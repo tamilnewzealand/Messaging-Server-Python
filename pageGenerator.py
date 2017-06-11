@@ -39,7 +39,7 @@ class pageGenerator(object):
             return file("login.html")
         else:
             raise cherrypy.HTTPRedirect("home")
-    
+
     """
         Calls the logoff API call function, then deletes the user's
         session data and redirects the user to the websites root.
@@ -71,7 +71,7 @@ class pageGenerator(object):
         else:
             cherrypy.session['userdata'] = None
             raise cherrypy.HTTPRedirect("login")
-    
+
     """
         Checks if the user is logged in and presents the
         appropriate page. If not logged in redirects to
