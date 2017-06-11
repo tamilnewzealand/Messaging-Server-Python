@@ -56,6 +56,8 @@ def unprocess(data, listLoggedInUsers):
         data['hashing'] = 0
     if 'hash' not in data:
         data['hash'] = ''
+    if data['hash'] == None:
+        data['hash'] = ''
 
     text = ''
     salt = data['sender'].encode('ascii')
@@ -157,7 +159,7 @@ def process(data, peer):
         data['encryption'] = '1'
     if '2' in supported[-2]:
         data['encryption'] = '2'
-    if '3' in supported[-2]:
+    if '3' in supported[-2] and (len(data['message']) < 128) :
         data['encryption'] = '3'
     if '4' in supported[-2]:
         data['encryption'] = '4'

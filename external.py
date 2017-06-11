@@ -39,8 +39,8 @@ class external(object):
 /getStatus [profile_username]
 /getList [username] [encryption] [json]
 /report [username] [passphrase] [signature] [location] [ip] [port] [encryption(opt)]
-Encryption: 0, 1, 2, 3, 4
-Hashing: 0, 1, 2, 3, 4, 5, 6, 7, 8""")
+Encryption: 0 1 2 3 4
+Hashing: 0 1 2 3 4 5 6 7 8""")
         else:
             return ("11: Blacklisted or Rate Limited")
 

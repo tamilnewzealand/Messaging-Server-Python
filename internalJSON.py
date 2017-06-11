@@ -9,31 +9,35 @@ import db
 import markdown
 import urllib2
 import json
+import thread
 import string
 
 
-def sendAcknowledge(data, ip):
-    try:
-        stuff = {'sender': data['sender'], 'stamp': data['stamp'],
-                 'hashing': data['hashing'], 'hash': data['hash']}
-        for peer in logserv.peerList:
-            if data['sender'] == peer['username']:
-                if peer['ip'] == cherrypy.session['userdata'].ip:
-                    db.updateMessageStatus(data, 'SEEN')
-                    continue
-                elif peer['location'] == '2':
-                    pass
-                elif peer['location'] == cherrypy.session['userdata'].location:
-                    pass
-                else:
-                    continue
-                payload = json.dumps(stuff)
-                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
-                    peer['port']) + '/acknowledge', payload, {'Content-Type': 'application/json'})
-                response = urllib2.urlopen(req, timeout=1).read()
-                db.updateMessageStatus(data, 'SEEN')
-    except:
-        pass
+def sendAcknowledge(messageList, userID, userdata):
+    for row in messageList:
+            if row['status'] != 'SEEN':
+                if row['sender'] == userID:
+                    try:
+                        stuff = {'sender': row['sender'], 'stamp': row['stamp'],
+                                'hashing': row['hashing'], 'hash': row['hash']}
+                        for peer in logserv.peerList:
+                            if row['sender'] == peer['username']:
+                                if peer['ip'] == userdata.ip:
+                                    db.updateMessageStatus(row, 'SEEN')
+                                    continue
+                                elif peer['location'] == '2':
+                                    pass
+                                elif peer['location'] == userdata.location:
+                                    pass
+                                else:
+                                    continue
+                                payload = json.dumps(stuff)
+                                req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
+                                    peer['port']) + '/acknowledge', payload, {'Content-Type': 'application/json'})
+                                response = urllib2.urlopen(req, timeout=1).read()
+                                db.updateMessageStatus(row, 'SEEN')
+                    except:
+                        pass
 
 
 class internalJSON(object):
@@ -91,10 +95,8 @@ class internalJSON(object):
             userID, cherrypy.session['userdata'].username)
         contact = db.getUserProfile(userID)[0]
         userdata = db.getUserProfile(cherrypy.session['userdata'].username)[0]
+        thread.start_new_thread(sendAcknowledge, (messageList, userID, cherrypy.session['userdata']))
         for row in messageList:
-            if row['status'] != 'SEEN':
-                if row['sender'] == userID:
-                    sendAcknowledge(row, cherrypy.session['userdata'].ip)
             row['stamp'] = time.strftime(
                 "%Y/%m/%d, %H:%M:%S", time.localtime(float(row['stamp'])))
             row['fullname'] = userdata['fullname']

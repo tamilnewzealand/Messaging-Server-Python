@@ -89,9 +89,12 @@ class logserv():
 
     def reporterTimer(self):
         starttime = time.time()
-        while not self.Kill:
+        while True:
             time.sleep(60.0 - ((time.time() - starttime) % 60.0))
-            logserv.reportAPICall(self)
+            if self.Kill:
+                thread.exit()
+            else:
+                logserv.reportAPICall(self)
         thread.exit()
 
     def reporterThread(self):
