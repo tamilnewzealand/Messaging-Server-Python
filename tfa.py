@@ -23,6 +23,11 @@ import smtplib
 import random
 
 
+"""
+    Sends an email to a particular user with the secret code
+    that is passed into it. The email is sent via Google's SMTP
+    servers.
+"""
 def sendemail(username, code):
     header = 'From: Sakayan Sitsabesan <tamilnewzealand96@gmail.com>\n'
     header += 'To: ' + username + '@aucklanduni.ac.nz\n'
@@ -38,7 +43,10 @@ def sendemail(username, code):
     server.quit()
     return problems
 
-
+"""
+    Generates a new random code and emails it to
+    the user and then returns the code for checking.
+"""
 def tfainit(username):
     code = str(random.randrange(100000, 999999))
     sendemail(username, code)

@@ -25,6 +25,11 @@ import logserv
 
 class pageGenerator(object):
 
+    """
+        Checks if the user is logged in, if so redirects
+        to the logged in home page. If not returns the login
+        page.
+    """
     @cherrypy.expose
     def login(self):
         if 'userdata' in cherrypy.session:
@@ -34,7 +39,11 @@ class pageGenerator(object):
             return file("login.html")
         else:
             raise cherrypy.HTTPRedirect("home")
-
+    
+    """
+        Calls the logoff API call function, then deletes the user's
+        session data and redirects the user to the websites root.
+    """
     @cherrypy.expose
     def logout(self):
         if 'userdata' in cherrypy.session:
@@ -47,6 +56,11 @@ class pageGenerator(object):
             del cherrypy.session['userdata']
         raise cherrypy.HTTPRedirect("/")
 
+    """
+        Checks if the user is logged in and presents the
+        appropriate page. If not logged in redirects to
+        the login page.
+    """
     @cherrypy.expose
     def home(self):
         if 'userdata' not in cherrypy.session:
@@ -57,7 +71,12 @@ class pageGenerator(object):
         else:
             cherrypy.session['userdata'] = None
             raise cherrypy.HTTPRedirect("login")
-
+    
+    """
+        Checks if the user is logged in and presents the
+        appropriate page. If not logged in redirects to
+        the login page.
+    """
     @cherrypy.expose
     def chat(self, userID):
         if 'userdata' not in cherrypy.session:
@@ -69,6 +88,11 @@ class pageGenerator(object):
         else:
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Checks if the user is logged in and presents the
+        appropriate page. If not logged in redirects to
+        the login page.
+    """
     @cherrypy.expose
     def calendar(self):
         if 'userdata' not in cherrypy.session:
@@ -80,6 +104,11 @@ class pageGenerator(object):
             cherrypy.session['userdata'] = None
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Checks if the user is logged in and presents the
+        appropriate page. If not logged in redirects to
+        the login page.
+    """
     @cherrypy.expose
     def event(self, sender, name, start_time):
         if 'userdata' not in cherrypy.session:
@@ -91,6 +120,11 @@ class pageGenerator(object):
         else:
             raise cherrypy.HTTPRedirect("login")
 
+    """
+        Checks if the user is logged in and presents the
+        appropriate page. If not logged in redirects to
+        the login page.
+    """
     @cherrypy.expose
     def editProfile(self):
         if 'userdata' not in cherrypy.session:

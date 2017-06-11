@@ -31,6 +31,21 @@ import db
 import urllib2
 
 
+"""
+    Unprocesses a recieved message.
+
+    Inputs: data (dictionary from JSON loads of the request)
+            listLoggedInUsers (global list of all logged in users 
+                                an their private keys, etc.)
+    
+    Outputs: data (a processed dictionary)
+        or optionally an error string
+
+    This method will add default values for optional arguements.
+    Decrypt messages according to the encryption parameter.
+    Check hash of message according to the hashing parameter.
+    Bleach all message strings to remove malicious content.
+"""
 def unprocess(data, listLoggedInUsers):
     if 'encryption' not in data:
         data['encryption'] = 0
@@ -115,9 +130,24 @@ def unprocess(data, listLoggedInUsers):
 
     return str('7: Hash does not match')
 
+"""
+    Processes a message for sending.
 
+    Inputs: data (dictionary for sending)
+            peer (dictionary containing the destinations details:
+                    ip, location, public key, etc.)
+    
+    Outputs: data (a processed dictionary)
+             hashing (the hashing value used)
+             hashe (the hash generated)
+
+    This method will call the /listAPI of the destination client
+    and appropriately encrypt and hash the message. If the /listAPI
+    response is not standard or is not available, a default listAPI is 
+    used.
+"""
 def process(data, peer):
-    supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
+    supported = ['Available APIs: ', '/listAPI ', '/ping ', '/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]', '/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] ', 'Encryption: 0', 'Hashing: 0']
     try:
         if peer['username'] == 'ssit662':
             peer['ip'] = 'localhost'
@@ -210,7 +240,17 @@ def process(data, peer):
 
     return (data, hashing, hashe)
 
+"""
+    Unprocesses a recieved message.
 
+    Inputs: data (dictionary from JSON loads of the request)
+            user (dictionary containing the destinations details:
+                    ip, location, public key, etc.)
+    
+    Outputs: data (a processed dictionary)
+
+    Decrypts messages according to the encryption parameter.
+"""
 def unprocessProf(data, user):
     if 'encryption' not in data:
         data['encryption'] = 0
@@ -241,7 +281,20 @@ def unprocessProf(data, user):
                     data[thing], data['decryptionKey'])
     return data
 
+"""
+    Processes a message for sending.
 
+    Inputs: data (dictionary for sending)
+            peer (dictionary containing the destinations details:
+                    ip, location, public key, etc.)
+    
+    Outputs: data (a processed dictionary)
+
+    This method will call the /listAPI of the destination client
+    and appropriately encrypt the message. If the /listAPI response 
+    is not standard or is not available, a default listAPI is 
+    used.
+"""
 def processProf(data, peer):
     supported = """Available APIs: \n/listAPI \n/ping \n/recieveMessage [sender] [destination] [message] [stamp(opt)] [markdown] [encryption(opt)] [hashing(opt)] [hash(opt)]\n/recieveFile [sender] [destination] [file] [filename] [content_type] [stamp] [encryption] [hash] \nEncryption: 0\nHashing: 0"""
     try:
